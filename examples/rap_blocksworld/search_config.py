@@ -42,7 +42,7 @@ class BWConfig(SearchConfig):
         self_eval = self.base_model.get_loglikelihood(self_eval_prompt, 
             [self_eval_prompt + "good"])[0]
 
-        return self.calculate_reward(intuition, self_eval), {'intuition': intuition, "self_eval": self_eval}
+        return self.calculate_reward(intuition, self_eval), {'intuition': intuition, 'self_eval': self_eval}
 
     def calculate_reward(self, intuition, self_eval, goal_reached=None):
         # to provide a unified interface for reward and fast_reward

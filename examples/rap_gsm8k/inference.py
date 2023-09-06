@@ -150,9 +150,9 @@ if __name__ == '__main__':
                   disable_tqdm=disable_tqdm or local_rank != 0,
                   **kwargs)
 
-    def main_hf(hf_path = "/data/haotian/RAP_tune/llama-30B-hf",
+    def main_hf(hf_path = "/data/haotian/RAP_tune/Llama-2-13b-hf",
                 batch_size = 1,
-                peft_path = None,
+                peft_path = "/data/haotian/RAP_tune/qlora/output/llama-2-13b-gsm-socrates-newed/checkpoint-70",
                 interactive_prompt = "examples/rap_gsm8k/prompts/interactive_examples.json",
                 useful_prompt = "examples/rap_gsm8k/prompts/useful_examples.json",
                 disable_log = False,
@@ -210,4 +210,4 @@ if __name__ == '__main__':
                   disable_tqdm=disable_tqdm or local_rank != 0,
                   **kwargs)
         
-    fire.Fire(main_exllama)
+    fire.Fire(main_hf)
