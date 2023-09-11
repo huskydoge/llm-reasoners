@@ -240,7 +240,7 @@ class MCTS(SearchAlgorithm, Generic[State, Action]):
                 if len(visited_children) == 0:
                     break
                 cur = max(visited_children, key=lambda x: x.reward)
-            self._output_cum_reward = self.cum_reward([node.reward for node in self._output_iter[1::-1]])
+            self._output_cum_reward = self.cum_reward([node.reward for node in self._output_iter[1::-1]])#root has no reward
         if self.output_strategy == 'max_reward':
             self._output_cum_reward, self._output_iter = self._dfs_max_reward([self.root])
             if self._output_cum_reward == -math.inf:
