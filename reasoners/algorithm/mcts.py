@@ -4,7 +4,7 @@ from typing import Generic, Optional, NamedTuple, Callable, Hashable
 import itertools
 from abc import ABC, abstractmethod
 from collections import defaultdict
-
+import utils
 import numpy as np
 from tqdm import trange
 
@@ -130,6 +130,7 @@ class MCTS(SearchAlgorithm, Generic[State, Action]):
         if not self._is_terminal_with_depth_limit(path[-1]):
             self._expand(path[-1])
             self._simulate(path)
+            self._correct_reward(path[-1])
         cum_reward = self._back_propagate(path)
         if self.output_strategy == 'max_iter' and path[-1].is_terminal and cum_reward > self._output_cum_reward:
             self._output_cum_reward = cum_reward
@@ -197,6 +198,17 @@ class MCTS(SearchAlgorithm, Generic[State, Action]):
             node = node.children[self.simulate_choice(fast_rewards)]
             path.append(node)
 
+    def _correct_reward(self, node: MCTSNode):
+        if not node.is_terminal:
+            return
+        else:
+            iter_output = utils.retrieve_answer(node.state)
+            correct = utils.judge_answer(iter_output, self.correct_answer)
+            if correct:
+                node.reward += 1
+            else:
+                node.reward = -1
+
     def _back_propagate(self, path: list[MCTSNode]):
         rewards = []
         cum_reward = -math.inf
@@ -249,11 +261,12 @@ class MCTS(SearchAlgorithm, Generic[State, Action]):
     def __call__(self,
                  world_model: WorldModel[State, Action],
                  search_config: SearchConfig[State, Action],
+                 correct_answer: str = None,
                  **kwargs) -> MCTSResult:
         MCTSNode.reset_id()
         self.world_model = world_model
         self.search_config = search_config
-
+        self.correct_answer = correct_answer
         self.search()
 
         if self._output_iter is None:

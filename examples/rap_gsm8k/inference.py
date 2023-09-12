@@ -73,7 +73,7 @@ def rap_gsm8k(base_model: LanguageModel,
     correct_count = 0
     for i, example in enumerate(tqdm(dataset, total=resume + len(dataset), initial=resume,
                                      desc='GSM8k', disable=disable_tqdm)):
-        algo_output = reasoner(example["question"])
+        algo_output = reasoner(example["question"],correct_answer=utils.retrieve_answer_from_dataset(example["answer"]))
         if aggregate:
             output = aggregator(algo_output.tree_state)
         elif algo_output.terminal_state is None:
@@ -113,7 +113,7 @@ if __name__ == '__main__':
         sys.stdout = open(os.devnull, 'w')
         warnings.filterwarnings('ignore')
 
-    def main(base_lm: Literal['llama', 'llama.cpp', 'llama-2', 'hf', 'exllama'] = 'llama-2',
+    def main(base_lm: Literal['llama', 'llama.cpp', 'llama-2', 'hf', 'exllama'] = 'exllama',
              llama_ckpts: str = llama_ckpts,
              llama_2_ckpts: str = llama_2_ckpts,
              llama_size: str = '13B',
@@ -123,7 +123,7 @@ if __name__ == '__main__':
              hf_peft_path: Optional[str] = None,
              hf_quantized: Optional[Literal['awq', 'int8', 'fp4', 'nf4']] = None,
              hf_load_awq_path: Optional[str] = None,
-             exllama_model_dir: str = 'WizardMath-13B-V1.0-GPTQ',
+             exllama_model_dir: str = '/data/haotian/RAP_tune/Llama-2-13B-GPTQ',
              exllama_lora_dir: Optional[str] = None,
              exllama_mem_map: Optional[str] = None,
              batch_size: int = 1,

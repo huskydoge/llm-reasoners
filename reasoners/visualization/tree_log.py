@@ -66,7 +66,7 @@ class TreeLog:
             return NodeData(state_dict)
 
         def default_edge_data_factory(n: MCTSNode) -> EdgeData:
-            return EdgeData({"Q": n.Q, "reward": n.reward, **get_reward_details(n)})
+            return EdgeData({"Q": n.Q, "reward": n.reward, "action": n.action, **get_reward_details(n)})
 
         node_data_factory = node_data_factory or default_node_data_factory
         edge_data_factory = edge_data_factory or default_edge_data_factory

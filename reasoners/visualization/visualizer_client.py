@@ -49,12 +49,15 @@ def present_visualizer(receipt: VisualizerClient.TreeLogReceipt):
 
 def visualize(result: Union[TreeLog, MCTSResult, BeamSearchResult], **kwargs):
     tree_log: TreeLog
-
+    print("kkkk")
     if isinstance(result, TreeLog):
+        print(0)
         tree_log = result
     elif isinstance(result, MCTSResult):
+        print(1)
         tree_log = TreeLog.from_mcts_results(result, **kwargs)
     elif isinstance(result, BeamSearchResult):
+        print(2)
         tree_log = TreeLog.from_beam_search_results(result, **kwargs)
     elif isinstance(result, ...):
         raise NotImplementedError()
