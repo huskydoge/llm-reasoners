@@ -31,6 +31,7 @@ class GSM8kConfig(SearchConfig):
                  force_overall_prompt_on_overall_question=True,
                  force_overall_question_on_overall_prompt=True) -> None:
         super().__init__()
+        #n_actions = depth_limit - 1 is reasonable: actually there can be depth-1 actions be meaningful
         self.base_model = base_model
         self.example = ''
         self.prompt: GSM8kPrompt = prompt

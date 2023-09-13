@@ -42,7 +42,7 @@ def rap_gsm8k(base_model: LanguageModel,
               disable_log: bool = False,
               disable_tqdm: bool = False,
               output_trace_in_each_iter: bool = True,
-              aggregate: bool = True,
+              aggregate: bool = False,
               **search_algo_params):
     if not disable_log:
         if log_dir is None:
@@ -52,7 +52,7 @@ def rap_gsm8k(base_model: LanguageModel,
         with open(os.path.join(log_dir, 'args.txt'), 'w') as f:
             print(sys.argv, file=f)
 
-    search_algo_params |= {'cum_reward': cum_reward, 'calc_q': calc_q, 'disable_tqdm': disable_tqdm,
+    search_algo_params |= {'disable_tqdm': disable_tqdm,
                            'output_trace_in_each_iter': output_trace_in_each_iter}
     world_model = GSM8kWorldModel(base_model=base_model, prompt=interactive_prompt,
                                   n_confidence=n_confidence, batch_size=batch_size, temperature=temperature,

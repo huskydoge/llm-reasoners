@@ -50,7 +50,7 @@ class GSM8kWorldModel(WorldModel[GSM8kState, GSM8kAction]):
     def init_state(self) -> list:
         return []
 
-    def step(self, state: GSM8kState, action: GSM8kAction) -> tuple[GSM8kState, dict]:
+    def step(self, state: GSM8kState, action: GSM8kAction, ans: str) -> tuple[GSM8kState, dict]:
         state = state.copy()
 
         with io.StringIO() as f:
