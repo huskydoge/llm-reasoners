@@ -3,7 +3,7 @@ from typing import NamedTuple, TypedDict
 from collections import defaultdict
 from reasoners import WorldModel, LanguageModel
 import utils
-
+import copy
 
 class SubResult(NamedTuple):
     sub_question: str
@@ -51,7 +51,7 @@ class GSM8kWorldModel(WorldModel[GSM8kState, GSM8kAction]):
         return []
 
     def step(self, state: GSM8kState, action: GSM8kAction, ans: str) -> tuple[GSM8kState, dict]:
-        state = state.copy()
+        state = copy.deepcopy(state)
 
         with io.StringIO() as f:
             f.write(self.prompt["input"])

@@ -1,12 +1,10 @@
 import io
 import re
 from typing import TypedDict, Optional
-
 import numpy as np
-
+from regex import P
 from world_model import GSM8kState, GSM8kAction, GSM8kPrompt
 from reasoners import SearchConfig, LanguageModel
-
 
 class GSM8kUsefulPrompt(TypedDict):
     input: str
@@ -14,7 +12,6 @@ class GSM8kUsefulPrompt(TypedDict):
     subquestion_prefix: str
     new_subquestion_prefix: str
     useful_prefix: str
-
 
 class GSM8kConfig(SearchConfig):
     def __init__(self,
@@ -31,14 +28,13 @@ class GSM8kConfig(SearchConfig):
                  force_overall_prompt_on_overall_question=True,
                  force_overall_question_on_overall_prompt=True) -> None:
         super().__init__()
-        #n_actions = depth_limit - 1 is reasonable: actually there can be depth-1 actions be meaningful
         self.base_model = base_model
         self.example = ''
         self.prompt: GSM8kPrompt = prompt
         self.useful_prompt: GSM8kUsefulPrompt = useful_prompt
         self.batch_size = batch_size
         self.temperature = temperature
-        self.n_actions = n_actions
+        self.n_actions = depth_limit - 1 #n_actions = depth_limit - 1 is reasonable: actually there can be depth-1 actions be meaningful
         self.force_terminating_on_depth_limit = force_terminating_on_depth_limit
         self.depth_limit = depth_limit
         self.reward_alpha = reward_alpha
@@ -50,8 +46,9 @@ class GSM8kConfig(SearchConfig):
     def update_example(self, example: str) -> None:
         super().update_example(example)
         if self.force_overall_prompt_on_overall_question or self.force_overall_question_on_overall_prompt:
-            self.overall_question = re.match('.*((Calculate|calculate|how|How|what|What|Find|find|True or false).*)$',
-                                             self.example)[1]
+            # self.overall_question = re.match('.*((Calculate|calculate|how|How|what|What|Find|find|True or false).*)$',
+            #                                  self.example, flags=re.MULTILINE)[1]
+            self.overall_question = re.match('.*((([A-Z].* (calculate|how|what|find|true or false))|((Calculate|How|What|Find|True or false))).*)$', self.example, flags=re.MULTILINE)[1]
 
     def get_actions(self, state: GSM8kState, ) -> list[GSM8kAction]:
         with io.StringIO() as f:
