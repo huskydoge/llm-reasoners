@@ -25,8 +25,8 @@ def rap_gsm8k(base_model: LanguageModel,
               interactive_prompt: dict,
               useful_prompt: dict,
               search_algo: Type[SearchAlgorithm] = MCTS,
-              resume: int = 0,
-              n_action: int = 4,
+              resume: int = 5,
+              n_action: int = 8,
               n_confidence: int = 8,
               depth_limit: int = 5,
               force_terminating_on_depth_limit: bool = True,
@@ -73,14 +73,15 @@ def rap_gsm8k(base_model: LanguageModel,
     correct_count = 0
     for i, example in enumerate(tqdm(dataset, total=resume + len(dataset), initial=resume,
                                      desc='GSM8k', disable=disable_tqdm)):
-        algo_output = reasoner(example["question"],correct_answer=utils.retrieve_answer_from_dataset(example["answer"]))
+        answer = utils.retrieve_answer_from_dataset(example["answer"])
+        algo_output = reasoner(example["question"],correct_answer=answer)
         if aggregate:
             output = aggregator(algo_output.tree_state)
         elif algo_output.terminal_state is None:
             output = None
         else:
             output = utils.retrieve_answer(algo_output.terminal_state)
-        answer = utils.retrieve_answer_from_dataset(example["answer"])
+        
         correct = utils.judge_answer(output, answer)
 
         correct_count += correct

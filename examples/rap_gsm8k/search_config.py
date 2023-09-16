@@ -34,7 +34,7 @@ class GSM8kConfig(SearchConfig):
         self.useful_prompt: GSM8kUsefulPrompt = useful_prompt
         self.batch_size = batch_size
         self.temperature = temperature
-        self.n_actions = depth_limit - 1 #n_actions = depth_limit - 1 is reasonable: actually there can be depth-1 actions be meaningful
+        self.n_actions = n_actions #n_actions = depth_limit - 1 is reasonable: actually there can be depth-1 actions be meaningful
         self.force_terminating_on_depth_limit = force_terminating_on_depth_limit
         self.depth_limit = depth_limit
         self.reward_alpha = reward_alpha
@@ -50,6 +50,15 @@ class GSM8kConfig(SearchConfig):
             #                                  self.example, flags=re.MULTILINE)[1]
             self.overall_question = re.match('.*((([A-Z].* (calculate|how|what|find|true or false))|((Calculate|How|What|Find|True or false))).*)$', self.example, flags=re.MULTILINE)[1]
 
+    def construct_final_action(self, state: GSM8kState,) -> GSM8kAction:
+        with io.StringIO() as f:
+            f.write(self.prompt["overall_question_prefix"])
+            f.write(" " + self.overall_question)
+            model_input = f.getvalue()
+        output = dict.fromkeys(model_input)
+        return output
+        
+
     def get_actions(self, state: GSM8kState, ) -> list[GSM8kAction]:
         with io.StringIO() as f:
             f.write(self.prompt["input"])
@@ -58,7 +67,7 @@ class GSM8kConfig(SearchConfig):
                 f.write(self.prompt["subquestion_prefix"].format(idx + 1) + " " + q + "\n")
                 f.write(self.prompt["answer_prefix"].format(idx + 1) + " " + a + "\n")
             f.write(self.prompt["subquestion_prefix"].format(len(state) + 1))
-            if at_depth_limit := self.force_terminating_on_depth_limit and len(state) + 1 >= self.depth_limit:
+            if at_depth_limit := (self.force_terminating_on_depth_limit and len(state) + 1 >= self.depth_limit):
                 f.write(" " + self.prompt["overall_question_prefix"])
             model_input = f.getvalue()
 
@@ -87,7 +96,9 @@ class GSM8kConfig(SearchConfig):
 
         # set does not guarantee order, but dict does guarantee
         # we cannot use set here because torch.distributed in LLaMA requires the same order across all processes
+        # print('former:',len(outputs))
         outputs = list(dict.fromkeys(outputs))
+        # print('latter:',len(outputs))
         return outputs
 
     def fast_reward(self, state: GSM8kState, action: GSM8kAction) -> tuple[float, dict]:

@@ -7,7 +7,7 @@ import os
 from reasoners.visualization import visualize
 from reasoners.visualization.tree_snapshot import NodeData
 from reasoners.algorithm.mcts import MCTSNode
-mcts_result = pickle.load(open('/data/haotian/RAP_tune/llm-reasoners/logs/gsm8k_MCTS/09132023-062200/algo_output/1.pkl', 'rb'))
+mcts_result = pickle.load(open('/data/haotian/RAP_tune/llm-reasoners/logs/gsm8k_MCTS/09152023-034956/algo_output/6.pkl', 'rb'))
 def gsm_node_data_factory(x: MCTSNode):
     if not x.state:
         return {}

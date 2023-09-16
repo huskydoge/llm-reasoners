@@ -35,7 +35,7 @@ class MCTSNode(Generic[State, Action]):
         self.action = action
         self.state = state
         self.parent = parent
-        self.children: 'Optional[list[MCTSNode]]' = None
+        self.children: 'Optional[list[MCTSNode]]' = []
         self._result = {}
         self._result[1] = 0
         self._result[-1] = 0
@@ -135,12 +135,21 @@ class MCTS(SearchAlgorithm, Generic[State, Action]):
     def _uct_select(self, node: MCTSNode) -> MCTSNode:
         return max(node.children, key=self._uct)
 
+    def _construct_terminal_child(self, node: MCTSNode):
+        children = []
+        action = self.search_config.construct_final_action(node.state)
+        child = MCTSNode(state=None, action=action, parent=node)
+        children.append(child)
+        node.children = children
+
 
     def _expand(self, node: MCTSNode):
         if node.state is None:
             node.state, aux = self.world_model.step(node.parent.state, node.action, self.correct_answer)
             node.is_terminal = self.world_model.is_terminal(node.state)
-
+            if aux.get('correct', True):
+                self._construct_terminal_child(node)
+                #fix here
         if node.is_terminal:
             return
 
@@ -149,7 +158,7 @@ class MCTS(SearchAlgorithm, Generic[State, Action]):
         for action in actions:
             child = MCTSNode(state=None, action=action, parent=node)
             children.append(child)
-        node.children = children
+        node.children.extend(children)
 
     def _simulate(self, path: list[MCTSNode]):
         node = path[-1]

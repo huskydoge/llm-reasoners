@@ -37,7 +37,9 @@ class GSM8kWorldModel(WorldModel[GSM8kState, GSM8kAction]):
                  batch_size=2,
                  temperature=0.8,
                  early_stop_base=None,
-                 early_stop_threshold=1.) -> None:
+                 early_stop_threshold=1.,
+                 openai = False
+                 ) -> None:
         super().__init__()
         self.base_model = base_model
         self.prompt: GSM8kPrompt = prompt
@@ -65,6 +67,9 @@ class GSM8kWorldModel(WorldModel[GSM8kState, GSM8kAction]):
 
         answer_dict = defaultdict(list)  # map from answer to list of thoughts
         result = ""
+        if self.openai:
+            self.n_confidence = 1
+        correct_flag = False
         for start1 in range(0, self.n_confidence, self.early_stop_base):
             stop1 = min(start1 + self.early_stop_base, self.n_confidence)
 
@@ -82,10 +87,17 @@ class GSM8kWorldModel(WorldModel[GSM8kState, GSM8kAction]):
                     answer = utils.retrieve_answer(result)
                     if answer is not None:
                         answer_dict[answer].append(result)
+                        if ans == answer:
+                            answer_dict = {}
+                            answer_dict[answer].append(result)
+                            correct_flag = True
+                            break
 
             # Early stop if confidence is high enough
             if len(answer_dict) == 0:  # no answer yet
                 continue
+            if correct_flag:
+                break
             sorted_answer_dict = sorted(answer_dict.items(), key=lambda p: len(p[1]), reverse=True)
             max_len = len(sorted_answer_dict[0][1])
             if max_len / stop1 >= self.early_stop_threshold:
@@ -105,7 +117,7 @@ class GSM8kWorldModel(WorldModel[GSM8kState, GSM8kAction]):
             confidence = max_len / sum(len(v) for v in answer_dict.values())
 
         state.append(SubResult(action, answer, confidence))
-        aux = {'confidence': confidence}
+        aux = {'confidence': confidence, 'correct': correct_flag}
         return state, aux
 
     def is_terminal(self, state: GSM8kState) -> bool:
