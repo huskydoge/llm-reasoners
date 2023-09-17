@@ -46,6 +46,7 @@ class GSM8kWorldModel(WorldModel[GSM8kState, GSM8kAction]):
         self.batch_size = batch_size
         self.n_confidence = n_confidence
         self.temperature = temperature
+        self.openai = openai
         self.early_stop_base = early_stop_base if early_stop_base is not None else n_confidence
         self.early_stop_threshold = early_stop_threshold
 
@@ -54,7 +55,6 @@ class GSM8kWorldModel(WorldModel[GSM8kState, GSM8kAction]):
 
     def step(self, state: GSM8kState, action: GSM8kAction, ans: str) -> tuple[GSM8kState, dict]:
         state = copy.deepcopy(state)
-
         with io.StringIO() as f:
             f.write(self.prompt["input"])
             f.write(self.prompt["question_prefix"] + self.example + "\n")
@@ -88,7 +88,7 @@ class GSM8kWorldModel(WorldModel[GSM8kState, GSM8kAction]):
                     if answer is not None:
                         answer_dict[answer].append(result)
                         if ans == answer:
-                            answer_dict = {}
+                            answer_dict = defaultdict(list)
                             answer_dict[answer].append(result)
                             correct_flag = True
                             break

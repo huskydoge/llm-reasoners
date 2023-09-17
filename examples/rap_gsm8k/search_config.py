@@ -55,7 +55,7 @@ class GSM8kConfig(SearchConfig):
             f.write(self.prompt["overall_question_prefix"])
             f.write(" " + self.overall_question)
             model_input = f.getvalue()
-        output = dict.fromkeys(model_input)
+        output = list(dict.fromkeys([model_input]))[0]
         return output
         
 
@@ -67,7 +67,7 @@ class GSM8kConfig(SearchConfig):
                 f.write(self.prompt["subquestion_prefix"].format(idx + 1) + " " + q + "\n")
                 f.write(self.prompt["answer_prefix"].format(idx + 1) + " " + a + "\n")
             f.write(self.prompt["subquestion_prefix"].format(len(state) + 1))
-            if at_depth_limit := (self.force_terminating_on_depth_limit and len(state) + 1 >= self.depth_limit):
+            if at_depth_limit := self.force_terminating_on_depth_limit and len(state) + 1 >= self.depth_limit:
                 f.write(" " + self.prompt["overall_question_prefix"])
             model_input = f.getvalue()
 
