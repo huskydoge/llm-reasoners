@@ -114,14 +114,17 @@ def bDFS_gsm8k(base_model: LanguageModel,
               early_stop_threshold: float = 0.5,
               reward_alpha: float = 0.5,
               reward_confidence_default: float = 0.8,
-              log_dir: Optional[str] = "/data/haotian/RAP_tune/llm-reasoners/logs/gsm8k_bDFS/09272023-191700",
+              log_dir: Optional[str] = None,
               disable_log: bool = False,
               disable_tqdm: bool = False,
               aggregate: bool = False,
+              question_given = None,
               **search_algo_params):
     if not disable_log:
         if log_dir is None:
             log_dir = f'logs/gsm8k_{search_algo.__name__}/{datetime.now().strftime("%m%d%Y-%H%M%S")}'
+        if not question_given is None:
+            log_dir = f'logs/gsm8k_{search_algo.__name__}/question_given/{datetime.now().strftime("%m%d%Y-%H%M%S")}'
         os.makedirs(log_dir, exist_ok=resume_s > 0)
         os.makedirs(os.path.join(log_dir, 'algo_output'), exist_ok=True)
         with open(os.path.join(log_dir, 'args.txt'), 'w') as f:
@@ -149,7 +152,10 @@ def bDFS_gsm8k(base_model: LanguageModel,
                                      desc='GSM8k', disable=disable_tqdm)):
         answer = utils.retrieve_answer_from_dataset(example["answer"])
         print(example["question"])
-        algo_output = reasoner(example["question"],correct_answer=answer)
+        if question_given == None:
+            algo_output = reasoner(example["question"], correct_answer=answer)
+        else:
+            algo_output = reasoner(question_given, correct_answer=answer)
         if aggregate:
             output = aggregator(algo_output.tree_state)
         elif algo_output.terminal_state is None:
@@ -172,7 +178,8 @@ def bDFS_gsm8k(base_model: LanguageModel,
                 with open(os.path.join(log_dir, 'algo_output', f'{resume_s + i + 1}.json'), 'w') as f:
                     # noinspection PyTypeChecker
                     print(TreeLog.from_bdfs_results(algo_output, node_data_factory=node_visualizer), file=f)
-
+        if question_given != None:
+            break
 
 if __name__ == '__main__':
     import os
@@ -206,7 +213,9 @@ if __name__ == '__main__':
              useful_prompt: str = 'examples/rap_gsm8k/prompts/useful_examples.json',
              disable_log: bool = False,
              disable_tqdm: bool = False,
+             question_given: str = None,
              **kwargs):
+        print(question_given)
         with open(interactive_prompt) as f:
             interactive_prompt = json.load(f)
         with open(useful_prompt) as f:
@@ -248,6 +257,7 @@ if __name__ == '__main__':
                   batch_size=batch_size,
                   disable_log=disable_log or local_rank != 0,
                   disable_tqdm=disable_tqdm or local_rank != 0,
+                  question_given=question_given,
                   **kwargs)
 
     fire.Fire(main)
