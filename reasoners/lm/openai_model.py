@@ -7,7 +7,7 @@ import time
 from .. import LanguageModel, GenerateOutput
 
 class GPTCompletionModel(LanguageModel):
-    def __init__(self, model:str, max_tokens:int = 2048, temperature=0.7):
+    def __init__(self, model:str, max_tokens:int = 2048, temperature=0.8):
         self.model = model
         self.max_tokens = max_tokens
         self.temperature = temperature
@@ -20,35 +20,35 @@ class GPTCompletionModel(LanguageModel):
 
     
     def generate(self,
-                prompt: str,
+                inputs: list[str],
                 max_tokens: int = None,
-                
                 top_p: float = 1.0,
+                hide_input: bool = True,
+                do_sample: bool = True,
                 num_return_sequences: int = 1,
                 rate_limit_per_min: Optional[int] = 20,
-                stop: Optional[str] = None,
+                eos_token_id: Optional[str] = None,
                 logprobs: Optional[int] = None,
                 temperature = None,
                 **kwargs) -> GenerateOutput:
-        
+        assert len(inputs) == 1 or inputs[0] == inputs[1]
         gpt_temperature = self.temperature if temperature is None else temperature
-
+        num_return_sequences = len(inputs)
+        inputs = inputs[0]
         if max_tokens is None:
             max_tokens = self.max_tokens
         
         if logprobs is None:
             logprobs = 0
 
-        i = 1
-
-        for i in range(1, 65):  # try 64 times
+        for _ in range(5):  # try 64 times
             try:
                 # sleep several seconds to avoid rate limit
                 if rate_limit_per_min is not None:
                     time.sleep(60 / rate_limit_per_min)
                 ### GPT 3.5 and higher use a different API
                 if ('gpt-3.5' in self.model) or ('gpt-4' in self.model):
-                    messages = [{"role": "user", "content": prompt}]
+                    messages = [{"role": "user", "content": inputs}]
                     response = openai.ChatCompletion.create(
                         model=self.model,
                         messages=messages,
@@ -56,7 +56,7 @@ class GPTCompletionModel(LanguageModel):
                         temperature=gpt_temperature,
                         top_p=top_p,
                         n=num_return_sequences,
-                        stop=stop,
+                        stop=eos_token_id,
                         **kwargs
                     )
                     '''print('-----------------------------------------')
@@ -76,12 +76,12 @@ class GPTCompletionModel(LanguageModel):
                 else:
                     response = openai.Completion.create(
                         model=self.model,
-                        prompt=prompt,
+                        prompt=inputs,
                         max_tokens=max_tokens,
                         temperature=gpt_temperature,
                         top_p=top_p,
                         n=num_return_sequences,
-                        stop=stop,
+                        stop=eos_token_id,
                         logprobs=logprobs,
                         **kwargs
                     )
@@ -92,8 +92,8 @@ class GPTCompletionModel(LanguageModel):
                     )
             
             except Exception as e:
-                print(f"An Error Occured: {e}, sleeping for {i*10} seconds")
-                time.sleep(i*10)
+                print(f"An Error Occured: {e}, sleeping for 20 seconds")
+                time.sleep(20)
         
         # after 64 tries, still no luck
         raise RuntimeError("GPTCompletionModel failed to generate output, even after 64 tries")

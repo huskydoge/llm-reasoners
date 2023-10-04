@@ -68,9 +68,9 @@ class MCTSResult(NamedTuple):
 class MCTS(SearchAlgorithm, Generic[State, Action]):
     def __init__(self,
                  output_trace_in_each_iter: bool = False,
-                 w_exp: float = 1.,
+                 w_exp: float = 10.,
                  depth_limit: int = 5,
-                 n_iters: int = 20,
+                 n_iters: int = 40,
                  output_strategy: str = 'follow_max',
                  disable_tqdm: bool = True):
         """
@@ -147,7 +147,7 @@ class MCTS(SearchAlgorithm, Generic[State, Action]):
         if node.state is None:
             node.state, aux = self.world_model.step(node.parent.state, node.action, self.correct_answer)
             node.is_terminal = self.world_model.is_terminal(node.state)
-            if aux.get('correct', True):
+            if aux.get('correct', True) and not node.is_terminal:
                 self._construct_terminal_child(node)
                 #fix here
         if node.is_terminal:

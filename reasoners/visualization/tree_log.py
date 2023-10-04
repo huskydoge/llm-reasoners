@@ -2,6 +2,7 @@ import json
 from typing import Sequence, Union
 
 from reasoners.algorithm import MCTSNode, MCTSResult, BeamSearchNode, BeamSearchResult
+from reasoners.algorithm.beam_dfs import bDFSNode, bDFSResult
 from reasoners.visualization.tree_snapshot import NodeId, EdgeId, TreeSnapshot, NodeData, EdgeData
 
 
@@ -72,7 +73,7 @@ class TreeLog:
         edge_data_factory = edge_data_factory or default_edge_data_factory
 
         snapshots = []
-
+        
         def all_nodes(node: MCTSNode):
             node_id = NodeId(node.id)
 
@@ -165,5 +166,67 @@ class TreeLog:
                 ).id
 
         snapshots.append(tree)
+
+        return cls(snapshots)
+
+    @classmethod
+    def from_bdfs_results(cls, bdfs_results: bDFSResult, node_data_factory: callable = None,
+                          edge_data_factory: callable = None) -> 'TreeLog':
+
+        def default_node_data_factory(n: bDFSNode) -> NodeData:
+            if not n.state:
+                return NodeData({})
+            # transform any object to dict
+            if hasattr(n.state, "_asdict"):
+                # if the state is a NamedTuple
+                state_dict = n.state._asdict()
+            elif isinstance(n.state, list):
+                state_dict = {idx: value for idx, value in enumerate(n.state)}
+            else:
+                try:
+                    state_dict = dict(n.state)
+                except TypeError:
+                    raise TypeError("The type of the state is not supported. "
+                                    "Please provide a node_data_factory function to transform the state to a dict.")
+            return NodeData(state_dict)
+
+        def default_edge_data_factory(n: bDFSNode) -> EdgeData:
+            return EdgeData({"action": n.action,"Q":n.q})
+
+        node_data_factory = node_data_factory or default_node_data_factory
+        edge_data_factory = edge_data_factory or default_edge_data_factory
+
+        snapshots = []
+
+        def all_nodes(node: bDFSNode):
+            node_id = NodeId(node.id)
+
+            nodes[node_id] = TreeSnapshot.Node(node_id, node_data_factory(node))
+            if node.children is None:
+                return
+            for child in node.children:
+                edge_id = EdgeId(len(edges))
+                edges.append(TreeSnapshot.Edge(edge_id, node.id, child.id, edge_data_factory(child)))
+                all_nodes(child)
+
+        tree_states = [bdfs_results.tree_state]
+
+        for step in range(len(tree_states)):
+            edges = []
+            nodes = {}
+
+            root = tree_states[step]
+            all_nodes(root)
+            tree = TreeSnapshot(list(nodes.values()), edges)
+
+            # select edges with highest Q value
+            for node in tree.nodes.values():
+                if node.selected_edge is None and tree.children(node.id):
+                    node.selected_edge = max(
+                        tree.out_edges(node.id),
+                        key=lambda edge: edge.data.get("Q", -float("inf"))
+                    ).id
+
+            snapshots.append(tree)
 
         return cls(snapshots)

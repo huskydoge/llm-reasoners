@@ -4,7 +4,7 @@ from typing import Optional, Union
 
 import requests
 
-from reasoners.algorithm import MCTSResult, BeamSearchResult
+from reasoners.algorithm import MCTSResult, BeamSearchResult, bDFSResult
 from reasoners.visualization import TreeLog, TreeLogEncoder
 
 _API_DEFAULT_BASE_URL = "https://2wz3t0av30.execute-api.us-west-1.amazonaws.com/staging"
@@ -47,18 +47,16 @@ def present_visualizer(receipt: VisualizerClient.TreeLogReceipt):
     webbrowser.open(receipt.access_url)
 
 
-def visualize(result: Union[TreeLog, MCTSResult, BeamSearchResult], **kwargs):
+def visualize(result: Union[TreeLog, MCTSResult, BeamSearchResult, bDFSResult], **kwargs):
     tree_log: TreeLog
-    print("kkkk")
     if isinstance(result, TreeLog):
-        print(0)
         tree_log = result
     elif isinstance(result, MCTSResult):
-        print(1)
         tree_log = TreeLog.from_mcts_results(result, **kwargs)
     elif isinstance(result, BeamSearchResult):
-        print(2)
         tree_log = TreeLog.from_beam_search_results(result, **kwargs)
+    elif isinstance(result, bDFSResult):
+        tree_log = TreeLog.from_bdfs_results(result, **kwargs)
     elif isinstance(result, ...):
         raise NotImplementedError()
     else:

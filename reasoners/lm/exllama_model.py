@@ -16,7 +16,7 @@ from .. import LanguageModel,GenerateOutput
 
 
 class ExLlamaModel(LanguageModel):
-    def __init__(self, model_dir, lora_dir, max_batch_size, max_new_tokens, max_seq_length, device='cuda:0', mem_map:list[int]=None, log_time=False):
+    def __init__(self, model_dir, lora_dir, max_batch_size, max_new_tokens, max_seq_len, device='cuda:0', mem_map:list[int]=None, log_time=False):
         """
         Initializes an ExLlamaModel instance.
 
@@ -26,7 +26,7 @@ class ExLlamaModel(LanguageModel):
             device (str): Device to use for inference (e.g. "cpu", "cuda").
             max_batch_size (int): Maximum batch size for inference.
             max_new_tokens (int): Maximum number of new tokens to generate during inference.
-            max_seq_length (int): Maximum sequence length for input text.
+            max_seq_len (int): Maximum sequence length for input text.
             mem_map (list[int]): List of integers specifying the memory map for the model (optional).
         Returns:
             None
@@ -64,7 +64,7 @@ class ExLlamaModel(LanguageModel):
 
         self.config = ExLlamaConfig(model_config_path)               # create config from config.json
         self.config.model_path = model_path                          # supply path to model weights file
-        self.config.max_seq_length = max_seq_length                  # set max sequence length
+        self.config.max_seq_len = max_seq_len                  # set max sequence length
         if mem_map is not None:
             self.config.auto_map = mem_map
         else:
@@ -87,7 +87,7 @@ class ExLlamaModel(LanguageModel):
         self.device = device
         self.max_batch_size = max_batch_size
         self.max_new_tokens = max_new_tokens
-        self.max_seq_length = max_seq_length
+        self.max_seq_len = max_seq_len
 
         self.log_time = log_time
     

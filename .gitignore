@@ -19,3 +19,4 @@ dataset/
 *.txt
 build/
 /examples/MATH/MATH/
+*.json

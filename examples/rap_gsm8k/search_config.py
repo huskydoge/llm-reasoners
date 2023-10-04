@@ -48,7 +48,7 @@ class GSM8kConfig(SearchConfig):
         if self.force_overall_prompt_on_overall_question or self.force_overall_question_on_overall_prompt:
             # self.overall_question = re.match('.*((Calculate|calculate|how|How|what|What|Find|find|True or false).*)$',
             #                                  self.example, flags=re.MULTILINE)[1]
-            self.overall_question = re.match('.*((([A-Z].* (calculate|how|what|find|true or false))|((Calculate|How|What|Find|True or false))).*)$', self.example, flags=re.MULTILINE)[1]
+            self.overall_question = re.match('.*((([A-Z].*(calculate|how|what|when|find|true or false))|((Calculate|How|What|When|Determine|Find|True or false))).*)', self.example, flags=re.DOTALL)[1]
 
     def construct_final_action(self, state: GSM8kState,) -> GSM8kAction:
         with io.StringIO() as f:
@@ -68,7 +68,7 @@ class GSM8kConfig(SearchConfig):
                 f.write(self.prompt["answer_prefix"].format(idx + 1) + " " + a + "\n")
             f.write(self.prompt["subquestion_prefix"].format(len(state) + 1))
             if at_depth_limit := self.force_terminating_on_depth_limit and len(state) + 1 >= self.depth_limit:
-                f.write(" " + self.prompt["overall_question_prefix"])
+                f.write(" " + self.prompt["overall_question_prefix"])##seems the model self stop without the limit
             model_input = f.getvalue()
 
         n_actions = 1 if at_depth_limit else self.n_actions
