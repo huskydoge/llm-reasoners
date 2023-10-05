@@ -58,10 +58,10 @@ class GSM8kWorldModel(WorldModel[GSM8kState, GSM8kAction]):
         with io.StringIO() as f:
             f.write(self.prompt["input"])
             f.write(self.prompt["question_prefix"] + self.example + "\n")
-            for idx, (q, a, _) in enumerate(state):
-                f.write(self.prompt["subquestion_prefix"].format(idx + 1) + " " + q + "\n")
-                f.write(self.prompt["answer_prefix"].format(idx + 1) + " " + a + "\n")
-            f.write(self.prompt["subquestion_prefix"].format(len(state) + 1) + " " + action + "\n")
+            f.write((self.prompt["answer_prefix"]))
+            for (_, a, _) in state:
+                f.write(a + " ")
+            f.write(action + " ")
             f.write(self.prompt["answer_prefix"].format(len(state) + 1))
             model_input = f.getvalue()
 
