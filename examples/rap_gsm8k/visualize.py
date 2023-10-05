@@ -21,7 +21,7 @@ def main(idx: int):
         return {"question": x.state[-1].sub_question, "answer": x.state[-1].sub_answer}
     print(idx)
     data = load_dataset('gsm8k', "main", split='train')
-    print("The question is:" ,data['question'][idx])
+    print("The question is:" ,data['question'][idx-1])
     visualize(mcts_result, node_data_factory=gsm_node_data_factory)
 
 fire.Fire(main)

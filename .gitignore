@@ -19,4 +19,6 @@ dataset/
 *.txt
 build/
 /examples/MATH/MATH/
-*.json
+logs/
+data_to_check/*/*.json
+/*json

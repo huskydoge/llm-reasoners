@@ -1,0 +1,5 @@
+{
+    "input": "Below is an instruction that describes a task. Write a response that appropriately completes the request ending with \"The answer is\".\n\n### Instruction:\n{}\n\n### Response:",
+    "step_prefix": "Step {}:",
+    "index": 1
+}
