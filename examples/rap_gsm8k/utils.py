@@ -1,17 +1,42 @@
 import re
 from typing import Optional, Union
 
-
+def is_number_or_symbol(s: str) -> bool:
+    match = re.match(r'[0-9$.,\- ]', s)
+    if match is None:
+        return False
+    return True
 def retrieve_answer(output: Union[list, str]) -> Optional[str]:
     '''
     output should be a world_model.GSM8kState if being a list
     '''
     if isinstance(output, list):
         output = output[-1].sub_question
-    match = re.match(r'.*The answer is .*?([ $.0-9,\-]+).*\..*', output)
+    match = re.match(r'.*[Tt]he answer is .*?([ $.0-9,\-]+).*?\.', output)
+
+        
+
     if match is None:
         return None
-    answer = match[1].replace(',', '').replace('$', '').replace(' ', '')
+    dot_idx = match[0].rfind('.')
+    end = 0
+    start = 100
+    ans = ''
+    for i in reversed(range(dot_idx)):
+        if is_number_or_symbol(match[0][i]):
+            if end == 0:
+                end = i
+        else:
+            if start == 100 and end != 0:
+                start = i+1
+            if match[0][start:end] != ' ':
+                ans = match[0][start:end]
+                break
+            else:
+                end = 0
+                start = 100
+    answer = ans.replace(',', '').s('$', '').replace(' ', '')
+    # answer = match[1].replace(',', '').replace('$', '').replace(' ', '')
     if '=' in answer:
         answer = answer[answer.rindex('=') + 1:]
     return answer
