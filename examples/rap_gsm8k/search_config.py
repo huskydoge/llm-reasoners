@@ -73,9 +73,9 @@ class GSM8kConfig(SearchConfig):
         n_actions = self.n_actions
         temperature = self.temperature
         outputs = []
-        print("____________________________")
-        print("model_input:",model_input)   
-        print("____________________________")
+        # print("____________________________")
+        # print("model_input:",model_input)   
+        # print("____________________________")
         for idx in range(0, n_actions, self.batch_size):
             n_samples = min(n_actions - idx, self.batch_size)
             outputs += self.base_model.generate([model_input] * n_samples,
@@ -85,9 +85,10 @@ class GSM8kConfig(SearchConfig):
                                                 eos_token_id=None).text
 
         outputs = [output.split(model_input)[1].strip() for output in outputs]
-        print(['*']*20)
-        print(outputs)
-        print(['*']*20)
+        # print(['*']*20)
+        # print(outputs)
+        # print(['*']*20)
+
         # if at_depth_limit:
         #     outputs = [self.prompt["overall_question_prefix"] + ' ' + output for output in outputs]
         # if self.force_overall_question_on_overall_prompt:

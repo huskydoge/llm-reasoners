@@ -12,10 +12,9 @@ def retrieve_answer(output: Union[list, str]) -> Optional[str]:
     '''
     if isinstance(output, list):
         output = output[-1].sub_question
-    match = re.match(r'.*[Tt]he answer is .*?([ $.0-9,\-]+).*?\.', output)
+    match = re.match(r'.*[Tt]he answer is .*?([ $.0-9,\-]+).*\.', output)
 
         
-
     if match is None:
         return None
     dot_idx = match[0].rfind('.')
@@ -29,13 +28,13 @@ def retrieve_answer(output: Union[list, str]) -> Optional[str]:
         else:
             if start == 100 and end != 0:
                 start = i+1
-            if match[0][start:end] != ' ':
-                ans = match[0][start:end]
-                break
+                if match[0][start:end+1] != ' ':
+                    ans = match[0][start:end+1]
+                    break
             else:
                 end = 0
                 start = 100
-    answer = ans.replace(',', '').s('$', '').replace(' ', '')
+    answer = ans.replace(',', '').replace('$', '').replace(' ', '')
     # answer = match[1].replace(',', '').replace('$', '').replace(' ', '')
     if '=' in answer:
         answer = answer[answer.rindex('=') + 1:]
@@ -62,3 +61,6 @@ def judge_answer(output: Optional[str], answer: str) -> bool:
     except ValueError:
         pass
     return output == answer
+
+if __name__ == '__main__':
+    print(retrieve_answer("The answer is 3 * 365 = 1095 pages a year."))
