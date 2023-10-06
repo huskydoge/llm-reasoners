@@ -1,3 +1,4 @@
+from calendar import c
 import io
 from typing import NamedTuple, TypedDict
 from collections import defaultdict
@@ -7,8 +8,8 @@ import copy
 
 class SubResult(NamedTuple):
     sub_question: str
-    sub_answer: str
-    confidence: float
+    # sub_answer: str
+    # confidence: float
 
 
 GSM8kState = list[SubResult]
@@ -55,73 +56,72 @@ class GSM8kWorldModel(WorldModel[GSM8kState, GSM8kAction]):
 
     def step(self, state: GSM8kState, action: GSM8kAction, ans: str) -> tuple[GSM8kState, dict]:
         state = copy.deepcopy(state)
-        with io.StringIO() as f:
-            f.write(self.prompt["input"])
-            f.write(self.prompt["question_prefix"] + self.example + "\n")
-            f.write((self.prompt["answer_prefix"]))
-            for (_, a, _) in state:
-                f.write(a + " ")
-            f.write(action + " ")
-            f.write(self.prompt["answer_prefix"].format(len(state) + 1))
-            model_input = f.getvalue()
+        # with io.StringIO() as f:
+        #     f.write(self.prompt["input"])
+        #     f.write(self.prompt["question_prefix"] + self.example + "\n")
+        #     f.write((self.prompt["answer_prefix"]))
+        #     for (_, a, _) in state:
+        #         f.write(a + " ")
+        #     f.write(action + " ")
+        #     model_input = f.getvalue()
 
-        answer_dict = defaultdict(list)  # map from answer to list of thoughts
-        result = ""
-        if self.openai:
-            self.n_confidence = 1
-        correct_flag = False
-        for start1 in range(0, self.n_confidence, self.early_stop_base):
-            stop1 = min(start1 + self.early_stop_base, self.n_confidence)
+        # answer_dict = defaultdict(list)  # map from answer to list of thoughts
+        # result = ""
+        # if self.openai:
+        #     self.n_confidence = 1
+        # correct_flag = False
+        # for start1 in range(0, self.n_confidence, self.early_stop_base):
+        #     stop1 = min(start1 + self.early_stop_base, self.n_confidence)
 
-            for start in range(start1, stop1, self.batch_size):
-                stop = min(start + self.batch_size, stop1)
-                num = stop - start
+        #     for start in range(start1, stop1, self.batch_size):
+        #         stop = min(start + self.batch_size, stop1)
+        #         num = stop - start
 
-                outputs = self.base_model.generate([model_input] * num,
-                                                   hide_input=True,
-                                                   do_sample=True,
-                                                   temperature=self.temperature,
-                                                   eos_token_id='\n').text
-                for output in outputs:
-                    result = output.strip()
-                    answer = utils.retrieve_answer(result)
-                    if answer is not None:
-                        answer_dict[answer].append(result)
-                        if ans == answer:
-                            answer_dict = defaultdict(list)
-                            answer_dict[answer].append(result)
-                            correct_flag = True
-                            break
+        #         outputs = self.base_model.generate([model_input] * num,
+        #                                            hide_input=True,
+        #                                            do_sample=True,
+        #                                            temperature=self.temperature,
+        #                                            eos_token_id='\n').text
+        #         for output in outputs:
+        #             result = output.strip()
+        #             answer = utils.retrieve_answer(result)
+        #             if answer is not None:
+        #                 answer_dict[answer].append(result)
+        #                 if ans == answer:
+        #                     answer_dict = defaultdict(list)
+        #                     answer_dict[answer].append(result)
+        #                     correct_flag = True
+        #                     break
 
-            # Early stop if confidence is high enough
-            if len(answer_dict) == 0:  # no answer yet
-                continue
-            if correct_flag:
-                break
-            sorted_answer_dict = sorted(answer_dict.items(), key=lambda p: len(p[1]), reverse=True)
-            max_len = len(sorted_answer_dict[0][1])
-            if max_len / stop1 >= self.early_stop_threshold:
-                if len(sorted_answer_dict) >= 2 and max_len == len(sorted_answer_dict[1][1]):
-                    pass  # Tie with the second best answer
-                else:
-                    break
+        #     # Early stop if confidence is high enough
+        #     if len(answer_dict) == 0:  # no answer yet
+        #         continue
+        #     if correct_flag:
+        #         break
+        #     sorted_answer_dict = sorted(answer_dict.items(), key=lambda p: len(p[1]), reverse=True)
+        #     max_len = len(sorted_answer_dict[0][1])
+        #     if max_len / stop1 >= self.early_stop_threshold:
+        #         if len(sorted_answer_dict) >= 2 and max_len == len(sorted_answer_dict[1][1]):
+        #             pass  # Tie with the second best answer
+        #         else:
+        #             break
 
-        if len(answer_dict) == 0:
-            confidence, answer = 0, result  # No reasonable answer found. Fall back to choose the last response
-        else:
-            sorted_answer_dict = sorted(answer_dict.items(), key=lambda p: len(p[1]), reverse=True)
-            max_answer = sorted_answer_dict[0]
-            max_answer_output_list = max_answer[1]
-            max_len = len(max_answer_output_list)
-            answer = max_answer_output_list[0]  # Here we simply choose the first appearance of the answer
-            confidence = max_len / sum(len(v) for v in answer_dict.values())
+        # if len(answer_dict) == 0:
+        #     confidence, answer = 0, result  # No reasonable answer found. Fall back to choose the last response
+        # else:
+        #     sorted_answer_dict = sorted(answer_dict.items(), key=lambda p: len(p[1]), reverse=True)
+        #     max_answer = sorted_answer_dict[0]
+        #     max_answer_output_list = max_answer[1]
+        #     max_len = len(max_answer_output_list)
+        #     answer = max_answer_output_list[0]  # Here we simply choose the first appearance of the answer
+        #     confidence = max_len / sum(len(v) for v in answer_dict.values())
 
-        state.append(SubResult(action, answer, confidence))
-        aux = {'confidence': confidence, 'correct': correct_flag}
-        return state, aux
+        state.append(SubResult(action))
+        # aux = {'confidence': confidence, 'correct': correct_flag}
+        return state
 
     def is_terminal(self, state: GSM8kState) -> bool:
-        if len(state) > 0 and "Now we can answer" in state[-1].sub_question:
+        if len(state) > 1 and "The answer is" in state[-1].sub_question:
             return True
         else:
             return False

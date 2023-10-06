@@ -18,7 +18,7 @@ import utils
 def node_visualizer(x: bDFSNode[GSM8kState, GSM8kAction]):
     if not x.state:
         return {}
-    return {"question": x.state[-1].sub_question, "answer": x.state[-1].sub_answer}
+    return {"question": x.state[-1].sub_question}
 
 
 def rap_gsm8k(base_model: LanguageModel,
@@ -102,9 +102,9 @@ def bDFS_gsm8k(base_model: LanguageModel,
               interactive_prompt: dict,
               useful_prompt: dict,
               search_algo: Type[SearchAlgorithm] = bDFS,
-              resume_s: int = 506,
+              resume_s: int = 4,
               resume_e: int = 700,
-              n_action: int = 4,
+              n_action: int = 2,
               n_confidence: int = 8,
               depth_limit: int = 5,
               force_terminating_on_depth_limit: bool = True,
@@ -209,7 +209,7 @@ if __name__ == '__main__':
              exllama_lora_dir: Optional[str] = None,
              exllama_mem_map: Optional[str] = None,
              batch_size: int = 1,
-             interactive_prompt: str = 'examples/rap_gsm8k/prompts/interactive_examples.json',
+             interactive_prompt: str = 'examples/rap_gsm8k/prompts/CoT_example.json',
              useful_prompt: str = 'examples/rap_gsm8k/prompts/useful_examples.json',
              disable_log: bool = False,
              disable_tqdm: bool = False,

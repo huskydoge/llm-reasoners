@@ -73,7 +73,7 @@ class bDFS(SearchAlgorithm, Generic[State,Action]):
     def _bdfs(self, node:bDFSNode):
         f1 = False
         if node.state is None and node.parent is not None:
-            node.state, aux = self.world_model.step(node.parent.state, node.action, self.correct_answer)
+            node.state = self.world_model.step(node.parent.state, node.action, self.correct_answer)
             node.is_terminal = self.world_model.is_terminal(node.state)
             # if aux.get('correct', True) and not node.is_terminal:
             #     self._construct_terminal_child(node)

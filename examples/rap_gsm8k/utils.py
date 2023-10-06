@@ -7,7 +7,7 @@ def retrieve_answer(output: Union[list, str]) -> Optional[str]:
     output should be a world_model.GSM8kState if being a list
     '''
     if isinstance(output, list):
-        output = output[-1].sub_answer
+        output = output[-1].sub_question
     match = re.match(r'.*The answer is .*?([ $.0-9,\-]+).*\..*', output)
     if match is None:
         return None

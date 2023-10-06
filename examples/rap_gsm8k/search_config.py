@@ -63,37 +63,67 @@ class GSM8kConfig(SearchConfig):
         with io.StringIO() as f:
             f.write(self.prompt["input"])
             f.write(self.prompt["question_prefix"] + self.example + "\n")
-            for idx, (q, a, _) in enumerate(state):
-                f.write(self.prompt["subquestion_prefix"].format(idx + 1) + " " + q + "\n")
-                f.write(self.prompt["answer_prefix"].format(idx + 1) + " " + a + "\n")
-            f.write(self.prompt["subquestion_prefix"].format(len(state) + 1))
+            f.write(self.prompt["answer_prefix"])
+            for a in state:
+                f.write(a.sub_question + " ")
             if at_depth_limit := self.force_terminating_on_depth_limit and len(state) + 1 >= self.depth_limit:
                 f.write(" " + self.prompt["overall_question_prefix"])##seems the model self stop without the limit
             model_input = f.getvalue()
 
-        n_actions = 1 if at_depth_limit else self.n_actions
-        temperature = 0 if at_depth_limit else self.temperature
+        n_actions = self.n_actions
+        temperature = self.temperature
         outputs = []
+        print("____________________________")
+        print("model_input:",model_input)   
+        print("____________________________")
         for idx in range(0, n_actions, self.batch_size):
             n_samples = min(n_actions - idx, self.batch_size)
             outputs += self.base_model.generate([model_input] * n_samples,
-                                                hide_input=True,
+                                                hide_input=False,
                                                 do_sample=True,
                                                 temperature=temperature,
-                                                eos_token_id='\n').text
+                                                eos_token_id=None).text
 
-        outputs = [output.strip() for output in outputs]
+        outputs = [output.split(model_input)[1].strip() for output in outputs]
+        print(['*']*20)
+        print(outputs)
+        print(['*']*20)
+        # if at_depth_limit:
+        #     outputs = [self.prompt["overall_question_prefix"] + ' ' + output for output in outputs]
+        # if self.force_overall_question_on_overall_prompt:
+        #     for i, output in enumerate(outputs):
+        #         if self.prompt["overall_question_prefix"] in output:
+        #             outputs[i] = self.prompt["overall_question_prefix"] + ' ' + self.overall_question
+        # if self.force_overall_prompt_on_overall_question:
+        #     for i, output in enumerate(outputs):
+        #         if self.overall_question.lower() == output.lower():
+        #             outputs[i] = self.prompt["overall_question_prefix"] + ' ' + self.overall_question
+        
         if at_depth_limit:
-            outputs = [self.prompt["overall_question_prefix"] + ' ' + output for output in outputs]
-        if self.force_overall_question_on_overall_prompt:
-            for i, output in enumerate(outputs):
-                if self.prompt["overall_question_prefix"] in output:
-                    outputs[i] = self.prompt["overall_question_prefix"] + ' ' + self.overall_question
-        if self.force_overall_prompt_on_overall_question:
-            for i, output in enumerate(outputs):
-                if self.overall_question.lower() == output.lower():
-                    outputs[i] = self.prompt["overall_question_prefix"] + ' ' + self.overall_question
-
+            for k in range(len(outputs)):
+                # print(model_input)
+                # print(outputs)
+                if 'Q:' in outputs[k]:
+                    outputs[k] = outputs[k].split('Q:')[0].rstrip('\n')
+                if '\n' in outputs[k]:
+                    outputs[k] = outputs[k].split('\n')[0].rstrip('.') + '.'
+                else:
+                    outputs[k] = outputs[k].split('. ',1)[0].rstrip('.') + '.'#only keep one sent for one action 
+                if 'The answer is' in outputs[k]:
+                    outputs[k] = outputs[k].split('The answer is')[1].rstrip('\n').rstrip('.') + '.'
+                outputs[k] = self.prompt["overall_question_prefix"] + ' ' + outputs[k]
+        else:
+            for k in range(len(outputs)):
+                outputs[k] = outputs[k].rstrip('\n')
+                if 'Q:' in outputs[k]:
+                    outputs[k] = outputs[k].split('Q:')[0].rstrip('\n')
+                if '\n' in outputs[k]:
+                    outputs[k] = outputs[k].split('\n')[0].rstrip('.') + '.'
+                else:
+                    tmp = outputs[k].split('. ',1)[0].rstrip('.') + '.'#only keep one sent for one action
+                    if len(tmp) < 5:#like 1. 2.
+                        tmp = '. '.join(outputs[k].split('. ',2)[0:2]).rstrip('.') + '.'
+                    outputs[k] = tmp
         # set does not guarantee order, but dict does guarantee
         # we cannot use set here because torch.distributed in LLaMA requires the same order across all processes
         # print('former:',len(outputs))
