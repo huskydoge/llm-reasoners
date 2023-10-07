@@ -70,7 +70,8 @@ class GSM8kConfig(SearchConfig):
                 f.write(" " + self.prompt["overall_question_prefix"])##seems the model self stop without the limit
             model_input = f.getvalue()
 
-        n_actions = self.n_actions
+        # n_actions = self.n_actions
+        n_actions = 1 if at_depth_limit else 5 - len(state)
         temperature = self.temperature
         outputs = []
         # print("____________________________")
@@ -112,6 +113,8 @@ class GSM8kConfig(SearchConfig):
                     outputs[k] = outputs[k].split('. ',1)[0].rstrip('.') + '.'#only keep one sent for one action 
                 if 'The answer is' in outputs[k]:
                     outputs[k] = outputs[k].split('The answer is')[1].rstrip('\n').rstrip('.') + '.'
+                if 'the answer is' in outputs[k]:
+                    outputs[k] = outputs[k].split('the answer is')[1].rstrip('\n').rstrip('.') + '.'
                 outputs[k] = self.prompt["overall_question_prefix"] + ' ' + outputs[k]
         else:
             for k in range(len(outputs)):
@@ -120,11 +123,10 @@ class GSM8kConfig(SearchConfig):
                     outputs[k] = outputs[k].split('Q:')[0].rstrip('\n')
                 if '\n' in outputs[k]:
                     outputs[k] = outputs[k].split('\n')[0].rstrip('.') + '.'
-                else:
-                    tmp = outputs[k].split('. ',1)[0].rstrip('.') + '.'#only keep one sent for one action
-                    if len(tmp) < 5:#like 1. 2.
-                        tmp = '. '.join(outputs[k].split('. ',2)[0:2]).rstrip('.') + '.'
-                    outputs[k] = tmp
+                tmp = outputs[k].split('. ',1)[0].rstrip('.') + '.'#only keep one sent for one action
+                if len(tmp) < 5:#like 1. 2.
+                    tmp = '. '.join(outputs[k].split('. ',2)[0:2]).rstrip('.') + '.'
+                outputs[k] = tmp
         # set does not guarantee order, but dict does guarantee
         # we cannot use set here because torch.distributed in LLaMA requires the same order across all processes
         # print('former:',len(outputs))

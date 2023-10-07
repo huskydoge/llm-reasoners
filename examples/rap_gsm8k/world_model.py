@@ -121,7 +121,7 @@ class GSM8kWorldModel(WorldModel[GSM8kState, GSM8kAction]):
         return state
 
     def is_terminal(self, state: GSM8kState) -> bool:
-        if len(state) > 1 and "The answer is" in state[-1].sub_question:
+        if len(state) > 1 and ("The answer is" in state[-1].sub_question or "the answer is" in state[-1].sub_question):
             return True
         else:
             return False
