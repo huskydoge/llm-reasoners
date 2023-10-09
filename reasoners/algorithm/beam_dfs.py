@@ -101,6 +101,7 @@ class bDFS(SearchAlgorithm, Generic[State,Action]):
 
 
     def search(self):
+        self.terminal_state = None
         self.root = bDFSNode(state=self.world_model.init_state(), action=None, parent=None)
         self._bdfs(self.root)
 
