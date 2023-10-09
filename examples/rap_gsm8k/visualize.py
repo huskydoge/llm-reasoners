@@ -14,7 +14,9 @@ import datasets
 from datasets import load_dataset
 def main(idx: int):
     # mcts_result = pickle.load(open(f'/data/haotian/RAP_tune/llm-reasoners/logs/gsm8k_bDFS/question_given/10042023-172629/algo_output/507.pkl', 'rb'))
-    mcts_result = pickle.load(open(f'/data/haotian/RAP_tune/llm-reasoners/logs/gsm8k_bDFS/10072023-163332/algo_output/{idx}.pkl', 'rb'))
+    # mcts_result = pickle.load(open(f'/data/haotian/RAP_tune/llm-reasoners/logs/gsm8k_bDFS/10072023-163332/algo_output/{idx}.pkl', 'rb'))
+    mcts_result = pickle.load(open(f'/data/haotian/RAP_tune/llm-reasoners/logs/gsm8k_bDFS/10072023-075211/algo_output/{idx}.pkl', 'rb'))
+
     def gsm_node_data_factory(x: Union[MCTSNode, bDFSNode]) -> dict:
         if not x.state:
             return {}
