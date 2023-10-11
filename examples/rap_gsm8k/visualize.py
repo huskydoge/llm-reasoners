@@ -14,15 +14,16 @@ import datasets
 from datasets import load_dataset
 def main(idx: int):
     # mcts_result = pickle.load(open(f'/data/haotian/RAP_tune/llm-reasoners/logs/gsm8k_bDFS/question_given/10042023-172629/algo_output/507.pkl', 'rb'))
-    # mcts_result = pickle.load(open(f'/data/haotian/RAP_tune/llm-reasoners/logs/gsm8k_bDFS/10072023-163332/algo_output/{idx}.pkl', 'rb'))
-    mcts_result = pickle.load(open(f'/data/haotian/RAP_tune/llm-reasoners/logs/gsm8k_bDFS/10072023-075211/algo_output/{idx}.pkl', 'rb'))
+    # mcts_result = pickle.load(open(f'/data/haotian/RAP_tune/llm-reasoners/logs/gsm8k_bDFS/10072023-163332/algo_output/{idx}.pkl', 'rb'))#cleaned more
+    mcts_result = pickle.load(open(f'/data/haotian/RAP_tune/llm-reasoners/logs/gsm8k_bDFS/10072023-075211/algo_output/{idx}.pkl', 'rb'))#old one is not cleaned enough
+    # mcts_result = pickle.load(open(f'/data/haotian/RAP_tune/llm-reasoners/logs/gsm8k_bDFS/10112023-072213/algo_output/{idx}.pkl', 'rb'))
 
     def gsm_node_data_factory(x: Union[MCTSNode, bDFSNode]) -> dict:
         if not x.state:
             return {}
         return {"question": x.state[-1].sub_question}
     print(idx)
-    data = load_dataset('gsm8k', "main", split='train')
+    data = load_dataset('gsm8k', "main", split='test')
     print("The question is:" ,data['question'][idx-1])
     print("The answer is:" ,data['answer'][idx-1])
     visualize(mcts_result, node_data_factory=gsm_node_data_factory)
