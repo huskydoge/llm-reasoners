@@ -102,7 +102,7 @@ def bDFS_gsm8k(base_model: LanguageModel,
               interactive_prompt: dict,
               useful_prompt: dict,
               search_algo: Type[SearchAlgorithm] = bDFS,
-              resume_s: int = 4,
+              resume_s: int = 0,
               resume_e: int = 700,
               n_action: int = None,
               n_confidence: int = 8,
@@ -146,7 +146,7 @@ def bDFS_gsm8k(base_model: LanguageModel,
     else:
         aggregator = None
 
-    dataset = load_dataset("gsm8k", "main", split=f'train[{resume_s}:{resume_e}]')##test->train
+    dataset = load_dataset("gsm8k", "main", split=f'test[{resume_s}:{resume_e}]')##test->train
     correct_count = 0
     for i, example in enumerate(tqdm(dataset, total=resume_s + len(dataset), initial=resume_s,
                                      desc='GSM8k', disable=disable_tqdm)):
@@ -201,9 +201,9 @@ if __name__ == '__main__':
              llama_size: str = '13B',
              llama_cpp_path: str = None,
              llama_cpp_n_batch: int = 512,
-             hf_path: str = 'meta-llama/Llama-2-13b-hf',
+             hf_path: str = '/data/haotian/RAP_tune/Llama-2-13b-hf',
              hf_peft_path: Optional[str] = None,
-             hf_quantized: Optional[Literal['awq', 'int8', 'fp4', 'nf4']] = None,
+             hf_quantized: Optional[Literal['awq', 'int8', 'fp4', 'nf4']] = 'nf4',
              hf_load_awq_path: Optional[str] = None,
              exllama_model_dir: str = '/data/haotian/RAP_tune/Llama-2-13B-GPTQ',
              exllama_lora_dir: Optional[str] = None,
