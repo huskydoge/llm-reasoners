@@ -2,7 +2,7 @@ import pickle
 from typing import Type, Callable, Optional, Literal
 
 import numpy as np
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 from reasoners.visualization import TreeLog
 from tqdm import tqdm
 from datetime import datetime
@@ -146,7 +146,8 @@ def bDFS_gsm8k(base_model: LanguageModel,
     else:
         aggregator = None
 
-    dataset = load_dataset("gsm8k", "main", split=f'test[{resume_s}:{resume_e}]')##test->train
+    # dataset = load_dataset("gsm8k", "main", split=f'test[{resume_s}:{resume_e}]')##test->train
+    dataset = Dataset.from_json("/data/haotian/RAP_tune/llm-reasoners/perturb_data.json")
     correct_count = 0
     for i, example in enumerate(tqdm(dataset, total=resume_s + len(dataset), initial=resume_s,
                                      desc='GSM8k', disable=disable_tqdm)):
@@ -251,6 +252,8 @@ if __name__ == '__main__':
             base_model = GPTCompletionModel('gpt-3.5-turbo')
         else:
             assert False, f'cannot resolve {base_lm=}'
+        print(base_lm)
+        print(exllama_lora_dir)
         bDFS_gsm8k(base_model=base_model,
                   interactive_prompt=interactive_prompt,
                   useful_prompt=useful_prompt,

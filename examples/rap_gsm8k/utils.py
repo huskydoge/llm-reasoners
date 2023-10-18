@@ -44,6 +44,8 @@ def retrieve_answer(output: Union[list, str]) -> Optional[str]:
 def retrieve_answer_from_dataset(answer: str) -> str:
     return re.match(r'[\S\s]*#### (.*)$', answer)[1]
 
+def retrieve_answer_from_dataset_perturb(answer: str) -> str:
+    return re.match(r'[\S\s]*\*\*\*(.*)\*\*\*', answer)[1]
 
 def judge_answer(output: Optional[str], answer: str) -> bool:
     if output is None:
