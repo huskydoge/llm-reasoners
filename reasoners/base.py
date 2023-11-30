@@ -187,7 +187,7 @@ class Evaluator():
                 log_dir = f'logs/{self._dataset_name}_'\
                         f'{algo_name}/'\
                         f'{datetime.now().strftime("%m%d%Y-%H%M%S")}'
-            os.makedirs(log_dir, exist_ok=resume > 0)
+            os.makedirs(log_dir, exist_ok=True)
             os.makedirs(os.path.join(log_dir, 'algo_output'), exist_ok=True)
         
             with open(os.path.join(log_dir, 'args.txt'), 'w') as f:
