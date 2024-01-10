@@ -60,6 +60,19 @@ class GSM8KEvaluator(Evaluator):
                                                                                             ret['useful_examples'])),
                                                                                     k=num_shot))
             return ret
+        
+        elif sample_prompt_type == "tot":
+            prompt = {}
+            
+            if shuffle_prompt:
+                cot_prompt = random.sample(self.init_prompt["solving_pool"], num_shot)
+            else:
+                cot_prompt = self.init_prompt["solving_pool"][:num_shot]
+            
+            prompt["icl"] = "\n\n".join(cot_prompt)
+            
+            if "self-eval" in self.init_prompt:
+                prompt["self-eval"] = self.init_prompt["self-eval"]
 
         else:
             raise NotImplementedError
