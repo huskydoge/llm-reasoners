@@ -82,7 +82,7 @@ if __name__ == '__main__':
              hf_peft_path: Optional[str] = None,
              hf_quantized: Optional[Literal['awq', 'int8', 'fp4', 'nf4']] = None,
              hf_load_awq_path: Optional[str] = None,
-             exllama_model_dir: str = '/data/yi/Llama-2-70B-GPTQ',
+             exllama_model_dir: str = '/home/shibo/Llama-2-70B-GPTQ',
              exllama_lora_dir: Optional[str] = None,
              exllama_mem_map: Optional[str] = None,
              batch_size: int = 2,

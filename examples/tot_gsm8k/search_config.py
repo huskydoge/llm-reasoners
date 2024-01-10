@@ -99,7 +99,7 @@ class GSM8kConfig(SearchConfig):
         
         # print the outputs
         for action_i, output in enumerate(outputs):
-            print(f"Action {action_i}: {output}")
+            print(f"Action {action_i}: {output}", flush=True)
         
         if at_depth_limit:
             outputs = [self.prompt["overall_question_prefix"] + ' ' + output for output in outputs]
