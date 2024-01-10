@@ -1,59 +1,85 @@
-from typing import Type, Callable, Optional, Literal
+from typing import Optional, Literal, Union
 
-import numpy as np
+import re
+from datetime import datetime
+import json
 
+from reasoners import LanguageModel, Reasoner
+from reasoners.algorithm import BeamSearch, BeamSearchResult, DFS, DFSResult
 from reasoners.benchmark import GSM8KEvaluator
 
-from reasoners import LanguageModel, Reasoner, SearchAlgorithm
-from reasoners.algorithm import BeamSearch
+from world_model import GSM8KWorldModel
+from search_config import GSM8KConfig
 
-from world_model import GSM8kWorldModel, GSM8kState, GSM8kAction, GSM8kPromptDict
-from search_config import GSM8kConfig, GSM8kUsefulPrompt
-import utils
+def retrieve_answer(output: Union[list, str, BeamSearchResult, DFSResult]) -> Optional[str]:
+    
+    
+    if isinstance(output, BeamSearchResult):
+        output = output.terminal_node.state
+    if isinstance(output, DFSResult):
+        output = output.terminal_state
+    if isinstance(output, list):
+        print(output, flush=True)
+        output = output[-1]
+        
+    match = re.match(r'.*answer is .*?([ $.0-9,\-=]+).*\..*', output)
+    if match is None:
+        return None
+    answer = match[1].replace(',', '').replace('$', '').replace(' ', '')
+    if '=' in answer:
+        answer = answer[answer.rindex('=') + 1:]
+    return answer
 
+def retrieve_answer_from_dataset(answer: Union[str, dict]) -> str:
+    if isinstance(answer, dict):
+        answer = answer['answer']
+    return re.match(r'[\S\s]*#### (.*)$', answer)[1].replace(',', '').replace(' ', '')
 
-def tot_gsm8k(base_model: LanguageModel,
-              prompt: GSM8kPromptDict,
-              useful_prompt: GSM8kUsefulPrompt,
-              search_algo: Type[SearchAlgorithm] = BeamSearch,
+def tot_GSM8K(base_model: LanguageModel,
+              prompt: dict,
+              search_algo: str = 'bfs',
               resume: int = 0,
               n_action: int = 4,
-              n_confidence: int = 8,
-              depth_limit: int = 5,
-              batch_size: int = 4,
               beam_size: int = 10,
+              depth_limit: int = 7,
               temperature: float = 0.8,
-              early_stop_base: int = 2,
-              early_stop_threshold: float = 0.5,
-              reward_alpha: float = 0.5,
-              reward_confidence_default: float = 0.8,
-              log_dir: Optional[str] = "logs/tot_gsm8k",
+              log_dir: Optional[str] = None,
               disable_log: bool = False,
               disable_tqdm: bool = False,
               **search_algo_params):
 
+    if not disable_log:
+        if log_dir is None:
+            log_dir = f'logs/GSM8K_{search_algo.__name__}/{datetime.now().strftime("%m%d%Y-%H%M%S")}'
+        os.makedirs(log_dir, exist_ok=resume >= 0)
+        os.makedirs(os.path.join(log_dir, 'algo_output'), exist_ok=True)
+        with open(os.path.join(log_dir, 'args.txt'), 'w') as f:
+            print(sys.argv, file=f)
 
-    search_algo_params |= {'beam_size': beam_size, 'max_depth': depth_limit,
+    if search_algo == 'bfs':
+        search_algo_params |= {'beam_size': beam_size, 'max_depth': depth_limit,
                             'early_terminate': True, 'reward_aggregator': 'last'}
-    world_model = GSM8kWorldModel(base_model=base_model,
-                                  n_confidence=n_confidence, batch_size=batch_size, temperature=temperature,
-                                  early_stop_base=early_stop_base, early_stop_threshold=early_stop_threshold)
-    config = GSM8kConfig(base_model=base_model, useful_prompt=useful_prompt,
-                         n_actions=n_action, batch_size=batch_size, temperature=temperature,
-                         reward_alpha=reward_alpha, reward_confidence_default=reward_confidence_default,
-                         depth_limit=depth_limit)
-    search_algo = search_algo(**search_algo_params)
+        search_algo = BeamSearch(**search_algo_params)
+    elif search_algo == 'dfs':
+        search_algo_params |= {'max_per_state': 3, 'total_states': 10, 'depth': depth_limit}
+        search_algo = DFS(**search_algo_params)
+
+    world_model = GSM8KWorldModel(base_model=base_model, prompt={})
+    config = GSM8KConfig(base_model=base_model, prompt={}, n_actions=n_action, temperature=temperature)
+    
     reasoner = Reasoner(world_model=world_model, search_config=config, search_algo=search_algo)
 
-    evaluator = GSM8KEvaluator(output_extractor=utils.retrieve_answer,
-                               answer_extractor=utils.retrieve_answer_from_dataset,
-                               init_prompt=prompt,
-                               sample_prompt_type="rap",
-                               disable_log=disable_log,
-                               disable_tqdm=disable_tqdm)
+    evaluator = GSM8KEvaluator(
+        answer_extractor=retrieve_answer_from_dataset,
+        output_extractor = retrieve_answer,
+        init_prompt = prompt,
+        disable_log = disable_log,
+        disable_tqdm = disable_tqdm,
+        sample_prompt_type="tot"
+    )
+    
+    evaluator.evaluate(reasoner, shuffle_prompt=True, num_shot=4, resume=resume, log_dir=log_dir)
 
-    accuracy = evaluator.evaluate(reasoner, num_shot=4, resume=resume, log_dir=log_dir)
-    print(accuracy)
 
 
 if __name__ == '__main__':
@@ -62,10 +88,14 @@ if __name__ == '__main__':
     import json
     import warnings
     import fire
+    from reasoners.lm import LlamaModel, LlamaCppModel, LlamaModel, ExLlamaModel
     import random
+    import torch
+    import torch.backends.cudnn
 
     llama_ckpts = os.environ.get("LLAMA_CKPTS", None)
     llama_2_ckpts = os.environ.get("LLAMA_2_CKPTS", None)
+    exllama_ckpt = os.environ.get("EXLLAMA_CKPT", None)
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     if local_rank != 0:
         sys.stdout = open(os.devnull, 'w')
@@ -73,63 +103,47 @@ if __name__ == '__main__':
 
 
     def main(base_lm: Literal['llama', 'llama.cpp', 'llama-2', 'hf', 'exllama'] = 'exllama',
-             llama_ckpts: str = llama_ckpts,
-             llama_2_ckpts: str = llama_2_ckpts,
-             llama_size: str = '70B',
+             llama_ckpt: str = llama_ckpts,
+             llama_2_ckpt: str = llama_2_ckpts,
+             exllama_ckpt: str = exllama_ckpt,
+             llama_size: str = '30B',
+             mem_map: list[int] = None,
              llama_cpp_path: str = None,
-             llama_cpp_n_batch: int = 512,
-             hf_path: str = 'meta-llama/Llama-2-13b-hf',
-             hf_peft_path: Optional[str] = None,
-             hf_quantized: Optional[Literal['awq', 'int8', 'fp4', 'nf4']] = None,
-             hf_load_awq_path: Optional[str] = None,
-             exllama_model_dir: str = '/data/yi/Llama-2-70B-GPTQ',
-             exllama_lora_dir: Optional[str] = None,
-             exllama_mem_map: Optional[str] = None,
              batch_size: int = 2,
-             useful_prompt: str = 'examples/tot_gsm8k/prompts/useful_examples.json',
-             prompt: str = 'examples/tot_gsm8k/prompts/prompt_pool.json',
+             max_seq_len: int = 2048,
+             prompt: str = 'examples/rap_GSM8K/prompts/prompt.json',
              disable_log: bool = False,
              disable_tqdm: bool = False,
              **kwargs):
-      
-        with open(useful_prompt) as f:
-            useful_prompt = json.load(f)
-        with open(prompt) as f:
-            prompt = json.load(f)
-        if base_lm in ['llama', 'llama2']:
-            import torch
-            import torch.backends.cudnn
-            np.random.seed(0)
-            random.seed(0)
-            torch.manual_seed(0)
-            torch.cuda.manual_seed(0)
-            torch.backends.cudnn.deterministic = True
+        # set base_lm = 'llama' and llama_ckpt = '13B/30B/65B' to use llama with torchscale
+        # else set base_lm = 'llama.cpp' and llama_cpp_path = the checkpoint to use llama.cpp
 
+        with open(prompt, 'r') as f:
+            prompt = json.load(f)
         if base_lm == 'llama':
-            from reasoners.lm import LlamaModel
-            base_model = LlamaModel(llama_ckpts, llama_size, max_batch_size=batch_size)
+            base_model = LlamaModel(llama_ckpt, llama_size, max_batch_size=batch_size, max_seq_len=max_seq_len)
         elif base_lm == 'llama.cpp':
-            from reasoners.lm import LlamaCppModel
-            base_model = LlamaCppModel(llama_cpp_path, n_batch=llama_cpp_n_batch)
-        elif base_lm == 'llama-2':
-            from reasoners.lm import Llama2Model
-            base_model = Llama2Model(llama_2_ckpts, llama_size, max_batch_size=batch_size)
-        elif base_lm == 'hf':
-            from reasoners.lm import HFModel
-            base_model = HFModel(hf_path, hf_path, max_batch_size=batch_size, max_new_tokens=512,
-                                 peft_pth=hf_peft_path, quantized=hf_quantized, load_awq_pth=hf_load_awq_path)
+            base_model = LlamaCppModel(llama_cpp_path)
+        elif base_lm == 'llama2':
+            base_model = LlamaModel(llama_2_ckpt, llama_size, max_batch_size=batch_size)
         elif base_lm == 'exllama':
-            from reasoners.lm import ExLlamaModel
-            base_model = ExLlamaModel(exllama_model_dir, exllama_lora_dir, mem_map=exllama_mem_map,
-                                      max_batch_size=batch_size, max_new_tokens=200, max_seq_length=3072)
+            device = torch.device("cuda:0")
+            base_model = ExLlamaModel(
+                model_dir = f"{exllama_ckpt}/Llama-2-{llama_size}-GPTQ",
+                lora_dir = None,
+                device = device,
+                max_batch_size = batch_size,
+                max_new_tokens = 256,
+                max_seq_length = max_seq_len,
+                mem_map = mem_map
+            )
+                
         else:
             assert False, f'cannot resolve {base_lm=}'
-        tot_gsm8k(base_model=base_model,
-                  useful_prompt=useful_prompt,
-                  prompt=prompt,
-                  batch_size=batch_size,
-                  disable_log=disable_log or local_rank != 0,
-                  disable_tqdm=disable_tqdm or local_rank != 0,
+        tot_GSM8K(base_model=base_model,
+                    prompt=prompt,
+                    disable_log=disable_log or local_rank != 0,
+                    disable_tqdm=disable_tqdm or local_rank != 0,
                   **kwargs)
 
 
