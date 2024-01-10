@@ -4,11 +4,12 @@ from typing import TypedDict, Optional
 
 import numpy as np
 
-from world_model import GSM8KState, GSM8KAction
+from world_model import StrategyQAState, StrategyQAAction
 from reasoners import SearchConfig, LanguageModel
 
 
-class GSM8KConfig(SearchConfig):
+
+class StrategyQAConfig(SearchConfig):
     def __init__(self,
                  base_model: LanguageModel,
                  prompt: dict,
@@ -21,7 +22,7 @@ class GSM8KConfig(SearchConfig):
         self.temperature = temperature
         self.n_actions = n_actions
     
-    def get_actions(self, state: GSM8KState) -> list[GSM8KAction]:
+    def get_actions(self, state: StrategyQAState ) -> list[StrategyQAAction]:
         prompt = self.prompt["icl"]
         prompt += "\n\n"
         prompt += f"Question:\n{self.example}\nSteps:\n"
@@ -44,7 +45,7 @@ class GSM8KConfig(SearchConfig):
         print("---------------------", flush=True)
         return outputs
     
-    def fast_reward(self, state: GSM8KState, action: GSM8KAction) -> float:
+    def fast_reward(self, state: StrategyQAState, action: StrategyQAAction) -> float:
         prompt = self.prompt["self-eval"]
         prompt += "\n\n"
         prompt += f"Question:\n{self.example}\nSteps:\n"
@@ -75,6 +76,6 @@ class GSM8KConfig(SearchConfig):
         
         return self_eval, {"self_eval": self_eval}
     
-    def reward(self, state: GSM8KState, action: GSM8KAction, **kwargs) -> float:
+    def reward(self, state: StrategyQAState, action: StrategyQAAction, **kwargs) -> float:
         # directly return the self_eval
         return kwargs["self_eval"], {"self_eval": kwargs["self_eval"]}

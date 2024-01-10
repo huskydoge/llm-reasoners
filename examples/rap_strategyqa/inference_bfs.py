@@ -1,81 +1,80 @@
-from typing import Optional, Literal, Union
+import pickle
+from typing import Type, Callable, Optional, Literal
 
-import re
+import numpy as np
+from reasoners.visualization import TreeLog
+from tqdm import tqdm
 from datetime import datetime
 import json
 
-from reasoners import LanguageModel, Reasoner
-from reasoners.algorithm import BeamSearch, BeamSearchResult, DFS, DFSResult
-from reasoners.benchmark import GSM8KEvaluator
+from reasoners import LanguageModel, Reasoner, SearchAlgorithm
+from reasoners.algorithm import MCTS, MCTSNode, BeamSearch, BeamSearchResult
+from reasoners.benchmark import StrategyQAEvaluator
 
-from world_model import GSM8KWorldModel
-from search_config import GSM8KConfig
+from world_model import StrategyQAWorldModel, StrategyQAState, StrategyQAAction
+from search_config import StrategyQAConfig
+from utils import retrieve_answer
 
-def retrieve_answer(output: Union[list, str, BeamSearchResult, DFSResult]) -> Optional[str]:
-    
-    
-    if isinstance(output, BeamSearchResult):
-        output = output.terminal_node.state
-    if isinstance(output, DFSResult):
-        output = output.terminal_state
-    if isinstance(output, list):
-        print(output, flush=True)
-        output = output[-1]
-        
-    match = re.match(r'.*answer is .*?([ $.0-9,\-=]+).*\..*', output)
-    if match is None:
-        return None
-    answer = match[1].replace(',', '').replace('$', '').replace(' ', '')
-    if '=' in answer:
-        answer = answer[answer.rindex('=') + 1:]
-    return answer
 
-def retrieve_answer_from_dataset(answer: Union[str, dict]) -> str:
-    if isinstance(answer, dict):
-        answer = answer['answer']
-    return re.match(r'[\S\s]*#### (.*)$', answer)[1].replace(',', '').replace(' ', '')
 
-def tot_GSM8K(base_model: LanguageModel,
+def node_visualizer(x: MCTSNode[StrategyQAState, StrategyQAAction]):
+    if not x.state:
+        return {}
+    return {"question": x.state[-1].sub_question, "answer": x.state[-1].sub_answer}
+
+def rap_cum_reward(cum_rewards):
+    return sum(cum_rewards) / (len(cum_rewards) + 1)
+
+def rap_strategyQA(base_model: LanguageModel,
               prompt: dict,
-              search_algo: str = 'bfs',
+              search_algo: Type[SearchAlgorithm] = BeamSearch,
               resume: int = 0,
               n_action: int = 4,
+              n_confidence: int = 8,
               beam_size: int = 10,
               depth_limit: int = 7,
+              force_terminating_on_depth_limit: bool = True,
+              batch_size: int = 2,
               temperature: float = 0.8,
+              early_stop_base: int = 2,
+              early_stop_threshold: float = 0.5,
+              reward_alpha: float = 0.5,
+              reward_confidence_default: float = 1,
+              eos_token_id='\n',
               log_dir: Optional[str] = None,
               disable_log: bool = False,
               disable_tqdm: bool = False,
+              data_file_path: str = None,
               **search_algo_params):
 
     if not disable_log:
         if log_dir is None:
-            log_dir = f'logs/GSM8K_{search_algo.__name__}/{datetime.now().strftime("%m%d%Y-%H%M%S")}'
+            log_dir = f'logs/strategyQA_{search_algo.__name__}/{datetime.now().strftime("%m%d%Y-%H%M%S")}'
         os.makedirs(log_dir, exist_ok=resume >= 0)
         os.makedirs(os.path.join(log_dir, 'algo_output'), exist_ok=True)
         with open(os.path.join(log_dir, 'args.txt'), 'w') as f:
             print(sys.argv, file=f)
 
-    if search_algo == 'bfs':
-        search_algo_params |= {'beam_size': beam_size, 'max_depth': depth_limit,
+    search_algo_params |= {'beam_size': beam_size, 'max_depth': depth_limit,
                             'early_terminate': True, 'reward_aggregator': 'last'}
-        search_algo = BeamSearch(**search_algo_params)
-    elif search_algo == 'dfs':
-        search_algo_params |= {'max_per_state': 3, 'total_states': 10, 'depth': depth_limit}
-        search_algo = DFS(**search_algo_params)
 
-    world_model = GSM8KWorldModel(base_model=base_model, prompt={})
-    config = GSM8KConfig(base_model=base_model, prompt={}, n_actions=n_action, temperature=temperature)
-    
+    eos_token_id = [13] # '\n', we do not want to use 29871
+    world_model = StrategyQAWorldModel(base_model=base_model, prompt={}, eos_token_id=eos_token_id,
+                                n_confidence=n_confidence, batch_size=batch_size, temperature=temperature,
+                                early_stop_base=early_stop_base, early_stop_threshold=early_stop_threshold)
+    config = StrategyQAConfig(base_model=base_model, prompt={}, eos_token_id=eos_token_id,
+                         n_actions=n_action, batch_size=batch_size, temperature=temperature,
+                         reward_alpha=reward_alpha, reward_confidence_default=reward_confidence_default,
+                         force_terminating_on_depth_limit=force_terminating_on_depth_limit, depth_limit=depth_limit)
+    search_algo = search_algo(**search_algo_params)
     reasoner = Reasoner(world_model=world_model, search_config=config, search_algo=search_algo)
 
-    evaluator = GSM8KEvaluator(
-        answer_extractor=retrieve_answer_from_dataset,
+    evaluator = StrategyQAEvaluator(
         output_extractor = retrieve_answer,
         init_prompt = prompt,
         disable_log = disable_log,
         disable_tqdm = disable_tqdm,
-        sample_prompt_type="tot"
+        data_file_path = data_file_path
     )
     
     evaluator.evaluate(reasoner, shuffle_prompt=True, num_shot=4, resume=resume, log_dir=log_dir)
@@ -109,9 +108,10 @@ if __name__ == '__main__':
              llama_size: str = '30B',
              mem_map: list[int] = None,
              llama_cpp_path: str = None,
+             reward_alpha: float = 0.5,
              batch_size: int = 2,
              max_seq_len: int = 2048,
-             prompt: str = 'examples/rap_GSM8K/prompts/prompt.json',
+             prompt: str = 'examples/rap_strategyQA/prompts/prompt.json',
              disable_log: bool = False,
              disable_tqdm: bool = False,
              **kwargs):
@@ -140,8 +140,10 @@ if __name__ == '__main__':
                 
         else:
             assert False, f'cannot resolve {base_lm=}'
-        tot_GSM8K(base_model=base_model,
+        rap_strategyQA(base_model=base_model,
                     prompt=prompt,
+                    batch_size=batch_size,
+                    reward_alpha=reward_alpha,
                     disable_log=disable_log or local_rank != 0,
                     disable_tqdm=disable_tqdm or local_rank != 0,
                   **kwargs)

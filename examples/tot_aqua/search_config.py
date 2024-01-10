@@ -4,11 +4,11 @@ from typing import TypedDict, Optional
 
 import numpy as np
 
-from world_model import GSM8KState, GSM8KAction
+from world_model import AQuAState, AQuAAction
 from reasoners import SearchConfig, LanguageModel
 
 
-class GSM8KConfig(SearchConfig):
+class AQuAConfig(SearchConfig):
     def __init__(self,
                  base_model: LanguageModel,
                  prompt: dict,
@@ -21,12 +21,14 @@ class GSM8KConfig(SearchConfig):
         self.temperature = temperature
         self.n_actions = n_actions
     
-    def get_actions(self, state: GSM8KState) -> list[GSM8KAction]:
+    def get_actions(self, state: AQuAState) -> list[AQuAAction]:
         prompt = self.prompt["icl"]
         prompt += "\n\n"
-        prompt += f"Question:\n{self.example}\nSteps:\n"
+        prompt += f"Question:\n{self.example}\nAnswer:\n"
         for action in state:
             prompt += f"{action}\n"
+        
+        # print(f"Prompt: {prompt}", flush=True)
         
         ouputs = self.base_model.generate([prompt],
                                           num_return_sequences=self.n_actions,
@@ -38,21 +40,25 @@ class GSM8KConfig(SearchConfig):
         outputs = [output.split("\n")[0] for output in ouputs]
         # deduplicate
         outputs = list(dict.fromkeys(outputs))
+        # remove empty or only whitespace or only \n outputs
+        outputs = [output for output in outputs if not re.match(r'^\s*$', output)]
         
         for output in outputs:
             print(f"output: {output}", flush=True)
         print("---------------------", flush=True)
         return outputs
     
-    def fast_reward(self, state: GSM8KState, action: GSM8KAction) -> float:
+    def fast_reward(self, state: AQuAState, action: AQuAAction) -> float:
         prompt = self.prompt["self-eval"]
         prompt += "\n\n"
-        prompt += f"Question:\n{self.example}\nSteps:\n"
+        prompt += f"Question:\n{self.example}\nAnswer:\n"
         for a in state:
             prompt += f"{a}\n"
         
         prompt += f"{action}\n"
         prompt += f"Is this step useful?\n"
+        
+        # print(f"Prompt: {prompt}", flush=True)
         
         self_eval = self.base_model.get_loglikelihood(prompt, [prompt + "Yes"])[0]
         
@@ -75,6 +81,6 @@ class GSM8KConfig(SearchConfig):
         
         return self_eval, {"self_eval": self_eval}
     
-    def reward(self, state: GSM8KState, action: GSM8KAction, **kwargs) -> float:
+    def reward(self, state: AQuAState, action: AQuAAction, **kwargs) -> float:
         # directly return the self_eval
         return kwargs["self_eval"], {"self_eval": kwargs["self_eval"]}

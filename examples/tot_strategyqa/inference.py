@@ -6,10 +6,10 @@ import json
 
 from reasoners import LanguageModel, Reasoner
 from reasoners.algorithm import BeamSearch, BeamSearchResult, DFS, DFSResult
-from reasoners.benchmark import GSM8KEvaluator
+from reasoners.benchmark import StrategyQAEvaluator
 
-from world_model import GSM8KWorldModel
-from search_config import GSM8KConfig
+from world_model import StrategyQAWorldModel
+from search_config import StrategyQAConfig
 
 def retrieve_answer(output: Union[list, str, BeamSearchResult, DFSResult]) -> Optional[str]:
     
@@ -22,20 +22,18 @@ def retrieve_answer(output: Union[list, str, BeamSearchResult, DFSResult]) -> Op
         print(output, flush=True)
         output = output[-1]
         
-    match = re.match(r'.*answer is .*?([ $.0-9,\-=]+).*\..*', output)
+    match = re.match(r'.*the answer is (.*)\.$', output)
     if match is None:
-        return None
-    answer = match[1].replace(',', '').replace('$', '').replace(' ', '')
-    if '=' in answer:
-        answer = answer[answer.rindex('=') + 1:]
+        ## negative word list
+        if ' not ' in output or ' no ' in output or 'Not ' in output or 'No ' in output:
+            answer = 'no'
+        else:
+            answer = ''
+    else:
+        answer = match[1]
     return answer
 
-def retrieve_answer_from_dataset(answer: Union[str, dict]) -> str:
-    if isinstance(answer, dict):
-        answer = answer['answer']
-    return re.match(r'[\S\s]*#### (.*)$', answer)[1].replace(',', '').replace(' ', '')
-
-def tot_GSM8K(base_model: LanguageModel,
+def tot_strategyQA(base_model: LanguageModel,
               prompt: dict,
               search_algo: str = 'bfs',
               resume: int = 0,
@@ -46,11 +44,12 @@ def tot_GSM8K(base_model: LanguageModel,
               log_dir: Optional[str] = None,
               disable_log: bool = False,
               disable_tqdm: bool = False,
+              data_file_path: str = None,
               **search_algo_params):
 
     if not disable_log:
         if log_dir is None:
-            log_dir = f'logs/GSM8K_{search_algo.__name__}/{datetime.now().strftime("%m%d%Y-%H%M%S")}'
+            log_dir = f'logs/strategyQA_{search_algo.__name__}/{datetime.now().strftime("%m%d%Y-%H%M%S")}'
         os.makedirs(log_dir, exist_ok=resume >= 0)
         os.makedirs(os.path.join(log_dir, 'algo_output'), exist_ok=True)
         with open(os.path.join(log_dir, 'args.txt'), 'w') as f:
@@ -64,17 +63,17 @@ def tot_GSM8K(base_model: LanguageModel,
         search_algo_params |= {'max_per_state': 3, 'total_states': 10, 'depth': depth_limit}
         search_algo = DFS(**search_algo_params)
 
-    world_model = GSM8KWorldModel(base_model=base_model, prompt={})
-    config = GSM8KConfig(base_model=base_model, prompt={}, n_actions=n_action, temperature=temperature)
+    world_model = StrategyQAWorldModel(base_model=base_model, prompt={})
+    config = StrategyQAConfig(base_model=base_model, prompt={}, n_actions=n_action, temperature=temperature)
     
     reasoner = Reasoner(world_model=world_model, search_config=config, search_algo=search_algo)
 
-    evaluator = GSM8KEvaluator(
-        answer_extractor=retrieve_answer_from_dataset,
+    evaluator = StrategyQAEvaluator(
         output_extractor = retrieve_answer,
         init_prompt = prompt,
         disable_log = disable_log,
         disable_tqdm = disable_tqdm,
+        data_file_path = data_file_path,
         sample_prompt_type="tot"
     )
     
@@ -111,7 +110,7 @@ if __name__ == '__main__':
              llama_cpp_path: str = None,
              batch_size: int = 2,
              max_seq_len: int = 2048,
-             prompt: str = 'examples/rap_GSM8K/prompts/prompt.json',
+             prompt: str = 'examples/rap_strategyQA/prompts/prompt.json',
              disable_log: bool = False,
              disable_tqdm: bool = False,
              **kwargs):
@@ -140,7 +139,7 @@ if __name__ == '__main__':
                 
         else:
             assert False, f'cannot resolve {base_lm=}'
-        tot_GSM8K(base_model=base_model,
+        tot_strategyQA(base_model=base_model,
                     prompt=prompt,
                     disable_log=disable_log or local_rank != 0,
                     disable_tqdm=disable_tqdm or local_rank != 0,

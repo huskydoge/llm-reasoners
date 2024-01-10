@@ -9,7 +9,9 @@ import random
 import copy
 from reasoners import Evaluator
 
-class GSM8KEvaluator(Evaluator):
+
+
+class AQuAEvaluator(Evaluator):
     def __init__(self, 
                  output_extractor,
                  answer_extractor,
@@ -21,12 +23,13 @@ class GSM8KEvaluator(Evaluator):
         self.init_prompt = init_prompt
         self.output_extractor = output_extractor
         self.answer_extractor = answer_extractor
-        self.input_processor = lambda x: x["question"]
-        self.full_dataset = datasets.load_dataset('gsm8k', 'main', split='test')
-        self._dataset_name = 'gsm8k'
+        self.input_processor = lambda x: x["question"]+"\nOptions:\n"+", ".join(x["options"]) +"."
+        self.full_dataset = datasets.load_dataset('aqua_rat', 'raw', split='test')
+        self._dataset_name = 'aqua'
         self.disable_log = disable_log
         self.disable_tqdm = disable_tqdm
         self.sample_prompt_type = sample_prompt_type
+        
 
     def sample_prompt(self,
                       shuffle_prompt=True,
@@ -60,7 +63,7 @@ class GSM8KEvaluator(Evaluator):
                                                                                             ret['useful_examples'])),
                                                                                     k=num_shot))
             return ret
-        
+
         elif sample_prompt_type == "tot":
             prompt = {}
             
@@ -81,16 +84,5 @@ class GSM8KEvaluator(Evaluator):
     def eval_output(self, answer, output):
         if output is None:
             return False
-        try:
-            output = int(output)
-            answer = int(answer)
-            return output == answer
-        except ValueError:
-            pass
-        try:
-            output = float(output)
-            answer = float(answer)
-            return output == answer
-        except ValueError:
-            pass
-        return output == answer
+        
+        return output.lower() == answer.lower()

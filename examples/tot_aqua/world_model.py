@@ -1,12 +1,12 @@
 from reasoners import WorldModel, LanguageModel
 
-GSM8KAction = str
-GSM8KExample = str
-GSM8KState = list[GSM8KAction]
+AQuAAction = str
+AQuAExample = str
+AQuAState = list[AQuAAction]
 
-class GSM8KWorldModel(WorldModel[GSM8KState, GSM8KAction, GSM8KExample]):
+class AQuAWorldModel(WorldModel[AQuAState, AQuAAction, AQuAExample]):
     """
-    GSM8K World Model
+    AQuA World Model
     
     State: [action_1, action_2, ...]
     Action: action
@@ -18,10 +18,10 @@ class GSM8KWorldModel(WorldModel[GSM8KState, GSM8KAction, GSM8KExample]):
         self.base_model = base_model
         self.prompt = prompt
     
-    def init_state(self) -> GSM8KState:
+    def init_state(self) -> AQuAState:
         return []
     
-    def step(self, state: GSM8KState, action: GSM8KAction) -> tuple[GSM8KState, dict]:
+    def step(self, state: AQuAState, action: AQuAAction) -> tuple[AQuAState, dict]:
         state = state.copy()
         
         # update state
@@ -29,7 +29,7 @@ class GSM8KWorldModel(WorldModel[GSM8KState, GSM8KAction, GSM8KExample]):
         
         return state, {}
     
-    def is_terminal(self, state: GSM8KState) -> bool:
+    def is_terminal(self, state: AQuAState) -> bool:
         # if "the answer is" in state[-1]:
         if len(state) > 0 and "the answer is" in state[-1].lower():
             return True

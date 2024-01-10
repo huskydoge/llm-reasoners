@@ -6,10 +6,10 @@ import json
 
 from reasoners import LanguageModel, Reasoner
 from reasoners.algorithm import BeamSearch, BeamSearchResult, DFS, DFSResult
-from reasoners.benchmark import GSM8KEvaluator
+from reasoners.benchmark import AQuAEvaluator
 
-from world_model import GSM8KWorldModel
-from search_config import GSM8KConfig
+from world_model import AQuAWorldModel
+from search_config import AQuAConfig
 
 def retrieve_answer(output: Union[list, str, BeamSearchResult, DFSResult]) -> Optional[str]:
     
@@ -22,20 +22,22 @@ def retrieve_answer(output: Union[list, str, BeamSearchResult, DFSResult]) -> Op
         print(output, flush=True)
         output = output[-1]
         
-    match = re.match(r'.*answer is .*?([ $.0-9,\-=]+).*\..*', output)
+    match = re.match(r'.*[Tt]he answer is ([A-E]).*?$', output, re.DOTALL)
+    
     if match is None:
+        print('match:', match)
         return None
-    answer = match[1].replace(',', '').replace('$', '').replace(' ', '')
-    if '=' in answer:
-        answer = answer[answer.rindex('=') + 1:]
+    print('match:', match[1].strip())
+    answer = match[1].strip()
+    
     return answer
 
 def retrieve_answer_from_dataset(answer: Union[str, dict]) -> str:
     if isinstance(answer, dict):
-        answer = answer['answer']
-    return re.match(r'[\S\s]*#### (.*)$', answer)[1].replace(',', '').replace(' ', '')
+        answer = answer['correct']
+    return answer
 
-def tot_GSM8K(base_model: LanguageModel,
+def tot_AQuA(base_model: LanguageModel,
               prompt: dict,
               search_algo: str = 'bfs',
               resume: int = 0,
@@ -50,7 +52,7 @@ def tot_GSM8K(base_model: LanguageModel,
 
     if not disable_log:
         if log_dir is None:
-            log_dir = f'logs/GSM8K_{search_algo.__name__}/{datetime.now().strftime("%m%d%Y-%H%M%S")}'
+            log_dir = f'logs/AQuA_{search_algo.__name__}/{datetime.now().strftime("%m%d%Y-%H%M%S")}'
         os.makedirs(log_dir, exist_ok=resume >= 0)
         os.makedirs(os.path.join(log_dir, 'algo_output'), exist_ok=True)
         with open(os.path.join(log_dir, 'args.txt'), 'w') as f:
@@ -64,12 +66,12 @@ def tot_GSM8K(base_model: LanguageModel,
         search_algo_params |= {'max_per_state': 3, 'total_states': 10, 'depth': depth_limit}
         search_algo = DFS(**search_algo_params)
 
-    world_model = GSM8KWorldModel(base_model=base_model, prompt={})
-    config = GSM8KConfig(base_model=base_model, prompt={}, n_actions=n_action, temperature=temperature)
+    world_model = AQuAWorldModel(base_model=base_model, prompt={})
+    config = AQuAConfig(base_model=base_model, prompt={}, n_actions=n_action, temperature=temperature)
     
     reasoner = Reasoner(world_model=world_model, search_config=config, search_algo=search_algo)
 
-    evaluator = GSM8KEvaluator(
+    evaluator = AQuAEvaluator(
         answer_extractor=retrieve_answer_from_dataset,
         output_extractor = retrieve_answer,
         init_prompt = prompt,
@@ -111,7 +113,7 @@ if __name__ == '__main__':
              llama_cpp_path: str = None,
              batch_size: int = 2,
              max_seq_len: int = 2048,
-             prompt: str = 'examples/rap_GSM8K/prompts/prompt.json',
+             prompt: str = 'examples/rap_AQuA/prompts/prompt.json',
              disable_log: bool = False,
              disable_tqdm: bool = False,
              **kwargs):
@@ -140,7 +142,7 @@ if __name__ == '__main__':
                 
         else:
             assert False, f'cannot resolve {base_lm=}'
-        tot_GSM8K(base_model=base_model,
+        tot_AQuA(base_model=base_model,
                     prompt=prompt,
                     disable_log=disable_log or local_rank != 0,
                     disable_tqdm=disable_tqdm or local_rank != 0,
