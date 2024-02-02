@@ -18,7 +18,6 @@ class LlamaCppModel(LanguageModel):
             Llama = None
             raise ImportError('You need to install llama-cpp-python if you want to use llama_cpp. '
                               'To ensure CUDA enabled, run \033[1mLLAMA_CUBLAS=1 CMAKE_ARGS=-DLLAMA_CUBLAS=on FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir --force-reinstall --verbose\033[0m. '
-                              'If your build fails or need more details, visit https://github.com/Ber666/llm-reasoners/tree/main/reasoners/lm#llamacpp. '
                               'If you want to use facebookresearch/llama, use llama instead of llama_cpp.') from e
 
         self.llama = Llama(path,
