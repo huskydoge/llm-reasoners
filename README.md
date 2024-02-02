@@ -223,6 +223,9 @@ def blocksworld_edge_data_factory(n: MCTSNode) -> EdgeData:
 visualize(mcts_result, node_data_factory=blocksworld_node_data_factory,
                        edge_data_factory=blocksworld_edge_data_factory)
 ```
+Then an URL of the visualized results will pop up. Below is an example of the visualization:
+
+![Alt text](images/visualization-gif.gif)
 
 ## Installation
 Make sure to use Python 3.10 or later.
