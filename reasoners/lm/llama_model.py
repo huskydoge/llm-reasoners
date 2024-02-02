@@ -304,11 +304,3 @@ class DummyLLaMAModel(LanguageModel):
                               prompt: Union[str, list[str]],
                               candidates: Union[list[str], list[list[str]]]) -> list[np.ndarray]:
         return [np.zeros(len(cand)) for cand in candidates]
-
-
-if __name__ == '__main__':
-    model = LlamaModel("/data/haotian/RAP_tune/llama-ckpts",'7B')
-    print(model.get_next_token_logits(['Smoking is harmful to health.'], candidates=[[' It']]))
-    print(model.get_next_token_logits(['Smoking is harmful to health. It'], candidates=[[' is']]))
-    print(model.get_next_token_logits(['Smoking is harmful to health. It is'], candidates=[[' the']]))
-    print(model.generate(['Smoking is harmful to health.'], max_new_tokens=20, output_log_probs=True, hide_input=False))

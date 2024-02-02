@@ -49,15 +49,3 @@ def main(exllama_model_dir, exllama_lora_dir, exllama_mem_map, batch_size=1, pro
 
 if __name__ == '__main__':
     fire.Fire(main)
-    """
-CUDA_VISIBLE_DEVICES=2 python examples/cot_gsm8k/inference.py \
---exllama_model_dir $LLAMA2_CKPTS \
---exllama_lora_dir None \
---exllama_mem_map None \
---temperature 0.0
-    """
-
-    """
-CUDA_VISIBLE_DEVICES=1 python examples/cot_gsm8k/inference.py --exllama_model_dir $LLAMA2_CKPTS --exllama_lora_dir None --exllama_mem_map None --temperature 0.8 --n_sc 10 --log_dir logs/4-shot-cot-llama2-70b-sc-10-temp-0.8-speed --batch_size 4 | tee cot_sc.log
-    """
-

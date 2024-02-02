@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
 
     def llamacpp_main(
-            llama_path = '/home/shibo/llama.cpp/models/65B/ggml-model-q8_0.bin',
+            llama_path = 'path_to_llama_cpp_model.bin',
             prompt_path: str = 'examples/blocksworld/prompts/prompt.json',
             data_path: str = 'examples/blocksworld/data/step_4.json',
             disable_log: bool = False,
@@ -110,7 +110,7 @@ if __name__ == '__main__':
                lm_plan_file=lm_plan_file, **kwargs)
 
     def llama_hf_main(
-            llama_path = '/data/haotian/RAP_tune/Llama-2-7b-hf',
+            llama_path = 'path_to_hf_model',
             peft_path = None,
             prompt_path: str = 'examples/blocksworld/prompts/prompt.json',
             data_path: str = 'examples/blocksworld/data/step_4.json',
@@ -138,7 +138,7 @@ if __name__ == '__main__':
                lm_plan_file=lm_plan_file, **kwargs)
     #for exllama use please refer to https://github.com/turboderp/exllama and put it under /llm-reasoners/
     def exllama_main(
-            model_dir = '/data/haotian/RAP_tune/Llama-2-13B-GPTQ',
+            model_dir = 'path_to_exllama_model',
             lora_dir = None,
             prompt_path: str = 'examples/blocksworld/prompts/prompt.json',
             data_path: str = 'examples/blocksworld/data/step_4.json',

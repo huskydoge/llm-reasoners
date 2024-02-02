@@ -82,5 +82,3 @@ def main(temperature=0.0, log_name="name"):
 
 if __name__ == '__main__':
     fire.Fire(main)
-
-# CUDA_VISIBLE_DEVICES=1 python examples/prontoqa/inference_cot.py --temperature 0.0

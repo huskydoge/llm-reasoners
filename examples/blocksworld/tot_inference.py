@@ -199,7 +199,7 @@ if __name__ == '__main__':
     torch.backends.cudnn.deterministic = True
 
     def exllama_main(
-            model_dir = '/data/haotian/RAP_tune/Llama-2-13B-GPTQ',
+            model_dir = 'path/to/exllama',
             lora_dir = None,
             prompt_path: str = 'examples/blocksworld/prompts/pool_prompt_v1.json',
             data_path: str = 'examples/blocksworld/data/split_v1/split_v1_step_2_data.json',

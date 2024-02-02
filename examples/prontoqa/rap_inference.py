@@ -10,6 +10,7 @@ from search_config import ProntoQAConfig
 from world_model import ProntoQAWorldModel, ProntoQAAction
 from reasoners.algorithm import MCTS
 from reasoners.benchmark import ProntoQAEvaluatorFinal
+
 def rap_answer_extractor(mcts_result):
     if mcts_result.trace is None:
         return ""
@@ -61,6 +62,3 @@ def main(model_dir: str=  os.environ['LLAMA2_CKPTS'],
 
 if __name__ == '__main__':
     fire.Fire(main)
-# CUDA_VISIBLE_DEVICES=0,1 python examples/prontoqa/rap_inference.py --mem_map "[16, 22]" --depth_limit 6 | tee debug_rap.log
-    
-# CUDA_VISIBLE_DEVICES=0,1 python examples/prontoqa/rap_inference.py --mem_map "[16, 22]" --depth_limit 6 --w_exp 2 | tee debug_rap_2.log

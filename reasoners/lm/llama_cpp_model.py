@@ -125,11 +125,3 @@ class LlamaCppModel(LanguageModel):
     def tokenize(self, text: str, add_bos=True):
         return self.llama.tokenize(bytes(text, encoding='utf-8'), add_bos=add_bos)
 
-
-if __name__ == '__main__':
-    from timeit import timeit
-    model = LlamaCppModel(path='/data/yi/llama.cpp/models/65B/ggml-model-q5_0.bin')
-    print(model.get_next_token_logits(['Hello'], candidates=[[',']], postprocess='log_softmax'))
-    print(model.get_next_token_logits(['Hello,'], candidates=[[' I']], postprocess='log_softmax'))
-    print(model.get_next_token_logits(['Hello, I'], candidates=[[' am']], postprocess='log_softmax'))
-    print(model.generate(['Hello'], max_new_tokens=20, output_log_probs=True))
