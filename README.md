@@ -6,15 +6,6 @@
 
 Given any reasoning problem, simply define the reward function and an optional world model (explained below), and let LLM reasoners take care of the rest, including Reasoning Algorithms, Visualization, LLM calling, and more!
 
-## News
-- Oct. 25, 2023: A [video tutorial](https://www.youtube.com/watch?v=5QfOxtiw_ZU) on the visualizer of LLM Reasoners are available.
-
-- Oct. 23, 2023: Reasoning-via-Planning is accepted to EMNLP 2023! Check our [paper](https://arxiv.org/abs/2305.14992) with updated results and discussion!
-
-- Aug. 21, 2023: A batch of quantized Llama-2 models has arrived! BitsandBytes with huggingface API, GPT-Q with exllama are available. **Now you can try [llama-2-70B with 2 x 24G GPUs](https://github.com/Ber666/llm-reasoners/tree/main/reasoners/lm#exllama).**
-
-- Aug. 10, 2023: Llama-2 is supported! You can run [examples](https://github.com/Ber666/llm-reasoners/tree/main/examples) with Llama-2 now.
-
 
 ## Why Choose LLM Reasoners?
 
@@ -88,7 +79,7 @@ After we have the world model and reward function, it's time to apply an algorit
 ![Alt text](images/mcts_animation.gif)
 
 ## Quick Tour
-Let's go through the code of reasoning over Blocksworld problems. Note that the code is simplified for demonstration (check [here](https://github.com/Ber666/llm-reasoners/tree/main/examples/rap_blocksworld) for full experiment code).
+Let's go through the code of reasoning over Blocksworld problems. Note that the code is simplified for demonstration (check [here](examples/rap_blocksworld) for full experiment code).
 
 The first step is to define the world model: you will set up an initial state given a question in `init_state`, judge whether a state is terminal in `is_terminal`, and most importantly, define the world dynamics with `step`:
 ```python
@@ -232,7 +223,7 @@ def blocksworld_edge_data_factory(n: MCTSNode) -> EdgeData:
 visualize(mcts_result, node_data_factory=blocksworld_node_data_factory,
                        edge_data_factory=blocksworld_edge_data_factory)
 ```
-Then an URL of the visualized results will pop up. The figure will be interactive and look like the examples shown in our [demo website](https://llm-reasoners.net/).
+
 ## Installation
 Make sure to use Python 3.10 or later.
 
@@ -241,21 +232,7 @@ conda create -n reasoners python=3.10
 conda activate reasoners
 ```
 
-Clone the repository and install the package:
+Install the package:
 ```bash
-git clone https://github.com/Ber666/llm-reasoners --recursive
-cd llm-reasoners
 pip install -e .
-```
-Adding `--recursive` will help you clone exllama automatically. Note that some other optional modules may need other dependencies. Please refer to the error message for details.
-
-## Citation
-This project is an extension of the following paper:
-```bibtex
-@article{hao2023reasoning,
-  title={Reasoning with language model is planning with world model},
-  author={Hao, Shibo and Gu, Yi and Ma, Haodi and Hong, Joshua Jiahua and Wang, Zhen and Wang, Daisy Zhe and Hu, Zhiting},
-  journal={arXiv preprint arXiv:2305.14992},
-  year={2023}
-}
 ```
