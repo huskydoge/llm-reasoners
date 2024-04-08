@@ -47,9 +47,9 @@ def generate(prompt):
             time.sleep(5)
 
 def AutoRace_evaluation(prompt_type:str = "aqua_auto",
-                    output_log:str = "logs/example_AutoRace.json"
+                    output_log:str = "logs/example_AutoRace.json",
+                    data_pth = "./eval_example.json"
                     ):
-    data_pth = "./eval_example.json"
     annotated_data = pd.read_json(data_pth, orient='records')
     for index in tqdm(range(len(annotated_data))):
         metadata_generation = annotated_data.loc[index, 'cot']
@@ -148,15 +148,13 @@ def result_score(data:pd.DataFrame, output_log_dir:str):
 
     #calculate the score
     total = len(data)
-    score = 0
-    for i in range(len(data)):
+    incorrect = 0
+    for i in range(total):
         if "INCORRECT" in rice_log[i]['text'][0]:
-            if data.loc[i, 'human_label'] == 0:
-                score += 1
-        else:
-            if data.loc[i, 'human_label'] == 1:
-                score += 1
-    print(f"AutoRace score: {score}/{total}")
+            incorrect += 1
+
+    print(f"AutoRace score: {(total - incorrect) /total: .2f}")
+
 
 
 def AutoRace_eval_dataset(
@@ -173,7 +171,7 @@ def AutoRace_eval_dataset(
     
     #generate LLM's response
     import pandas as pd
-    data = pd.read_json(f"./data/{dataset}.jsonl", lines=True)
+    data = pd.read_json(f"./data/{dataset}.jsonl", lines=True) # Please put your dataset.jsonl under "data" directory
     for index in tqdm(range(len(data))):
         metadata_generation = data.loc[index, 'metadata_generation']
         #make some format cleanning
@@ -192,9 +190,8 @@ def AutoRace_eval_dataset(
         with jsonlines.open(output_log_dir, mode='a') as writer:
             writer.write(tmp)
     
-    if dataset != "AQuA":
-        #calculate the score
-        result_score(data, output_log_dir)
+    #calculate the score
+    result_score(data, output_log_dir)
     
 
     
